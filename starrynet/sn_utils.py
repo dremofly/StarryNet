@@ -163,12 +163,21 @@ def sn_init_remote_machine(host, username, password):
     # remote_machine_ssh._transport = transport
     remote_machine_ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    remote_machine_ssh.connect(hostname=host,
-                               port=22,
-                               username=username,
-                               password=password)
-    transport = paramiko.Transport((host, 22))
-    transport.connect(username=username, password=password)
+    try:
+        remote_machine_ssh.connect(hostname=host,
+                                   port=6010, # 手动修改了port
+                                   username=username,
+                                   password=password)
+        transport = paramiko.Transport((host, 6010))
+        transport.connect(username=username, password=password)
+    except:
+        myprivatekey = paramiko.RSAKey(filename=".prv")
+        remote_machine_ssh.connect(hostname=host,
+                                   port=6010,
+                                   username=username,
+                                   pkey=myprivatekey)
+        transport = paramiko.Transport((host, 6010))
+        transport.connect(username=username, pkey=myprivatekey)
     return remote_machine_ssh, transport
     # transport.close()
 

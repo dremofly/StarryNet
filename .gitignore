@@ -57,3 +57,5 @@ __pycache__
 
 # sensitive info
 config.json
+/run.sh
+/sync_server.sh

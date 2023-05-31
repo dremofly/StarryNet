@@ -60,3 +60,4 @@ config.json
 /run.sh
 /sync_server.sh
 /.prv
+/config.json

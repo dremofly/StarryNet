@@ -18,6 +18,7 @@
     "remote_machine_IP": "101.6.21.2",
     "remote_machine_username": "root",
     "remote_machine_password": "123456",
+    "remote_machine_port": 22,
     "Satellite link": "grid",
     "IP version": "IPv4",
     "Intra-AS routing": "OSPF",

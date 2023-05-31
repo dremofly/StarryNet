@@ -76,6 +76,7 @@ def sn_load_file(path, GS_lat_long):
     data['remote_machine_IP'] = table["remote_machine_IP"]
     data['remote_machine_username'] = table["remote_machine_username"]
     data['remote_machine_password'] = table["remote_machine_password"]
+    data['remote_machine_port'] = table["remote_machine_port"]
 
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--cons_name', type=str, default=data['cons_name'])
@@ -130,6 +131,9 @@ def sn_load_file(path, GS_lat_long):
     parser.add_argument('--remote_machine_password',
                         type=str,
                         default=data['remote_machine_password'])
+    parser.add_argument('--remote_machine_port',
+                        type=int,
+                        default=data['remote_machine_port'])
 
     parser.add_argument('--path',
                         '-p',
@@ -156,7 +160,7 @@ def sn_get_param(file_):
     return ADJ
 
 
-def sn_init_remote_machine(host, username, password):
+def sn_init_remote_machine(host, username, password, port=22):
     # transport = paramiko.Transport((host, 22))
     # transport.connect(username=username, password=password)
     remote_machine_ssh = paramiko.SSHClient()
@@ -165,18 +169,18 @@ def sn_init_remote_machine(host, username, password):
 
     try:
         remote_machine_ssh.connect(hostname=host,
-                                   port=22, # 手动修改了port
+                                   port=port, # 手动修改了port
                                    username=username,
                                    password=password)
-        transport = paramiko.Transport((host, 22))
+        transport = paramiko.Transport((host, port))
         transport.connect(username=username, password=password)
     except:
         myprivatekey = paramiko.RSAKey(filename=".prv")
         remote_machine_ssh.connect(hostname=host,
-                                   port=22,
+                                   port=port,
                                    username=username,
                                    pkey=myprivatekey)
-        transport = paramiko.Transport((host, 22))
+        transport = paramiko.Transport((host, port))
         transport.connect(username=username, pkey=myprivatekey)
     return remote_machine_ssh, transport
     # transport.close()

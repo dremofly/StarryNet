@@ -67,7 +67,7 @@ class StarryNet():
         # Get ssh handler.
         self.remote_ssh, self.transport = sn_init_remote_machine(
             sn_args.remote_machine_IP, sn_args.remote_machine_username,
-            sn_args.remote_machine_password)
+            sn_args.remote_machine_password, sn_args.remote_machine_port)
         if self.remote_ssh is None:
             print('Remote SSH login failure.')
             return

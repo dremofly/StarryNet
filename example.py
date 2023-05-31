@@ -92,4 +92,4 @@ if __name__ == "__main__":
     sn.set_perf(node_index1, node_index2, time_index)
 
     sn.start_emulation()
-    sn.stop_emulation()
+    # sn.stop_emulation()

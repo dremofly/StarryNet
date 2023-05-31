@@ -90,6 +90,7 @@ if __name__ == "__main__":
     time_index = 4
     # perf msg of two nodes at a certain time. The output file will be written at the working directory.
     sn.set_perf(node_index1, node_index2, time_index)
+    sn.set_quic(node_index1, node_index2, time_index)
 
     sn.start_emulation()
     # sn.stop_emulation()

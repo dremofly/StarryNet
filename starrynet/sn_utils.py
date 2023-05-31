@@ -373,7 +373,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                  ping_src, ping_des, ping_time, sr_src, sr_des, sr_target,
                  sr_time, damage_ratio, damage_time, damage_list,
                  recovery_time, route_src, route_time, duration,
-                 utility_checking_time, perf_src, perf_des, perf_time):
+                 utility_checking_time, perf_src, perf_des, perf_time, quic_src, quic_des, quic_time):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
         self.remote_ftp = remote_ftp
@@ -391,6 +391,9 @@ class sn_Emulation_Start_Thread(threading.Thread):
         self.perf_src = perf_src
         self.perf_des = perf_des
         self.perf_time = perf_time
+        self.quic_src = quic_src
+        self.quic_des = quic_des
+        self.quic_time = quic_time
         self.sr_src = sr_src
         self.sr_des = sr_des
         self.sr_target = sr_target
@@ -409,6 +412,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
     def run(self):
         ping_threads = []
         perf_threads = []
+        quic_threads = []
         timeptr = 2  # current emulating time
         topo_change_file_path = self.configuration_file_path + "/" + self.file_path + '/Topo_leo_change.txt'
         fi = open(topo_change_file_path, 'r')
@@ -491,6 +495,26 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                           self.remote_ssh))
                                 perf_thread.start()
                                 perf_threads.append(perf_thread)
+                    # TODO add quic time
+                    if timeptr in self.quic_time:
+                        if timeptr in self.quic_time:
+                            index = [
+                                i for i, val in enumerate(self.quic_time)
+                                if val == timeptr
+                            ]
+                            for index_num in index:
+                                # TODO quic thread
+                                quic_thread = threading.Thread(
+                                target=sn_quic,
+                                args=(self.quic_src[index_num],
+                                      self.quic_des[index_num],
+                                      self.quic_time[index_num],
+                                      self.constellation_size,
+                                      self.container_id_list, self.file_path,
+                                      self.configuration_file_path,
+                                      self.remote_ssh))
+                                quic_thread.start()
+                                quic_threads.append(quic_thread)
                     if timeptr in self.route_time:
                         index = [
                             i for i, val in enumerate(self.route_time)
@@ -619,6 +643,26 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                       self.remote_ssh))
                             perf_thread.start()
                             perf_threads.append(perf_thread)
+                # TODO add quic time
+                if timeptr in self.quic_time:
+                    if timeptr in self.quic_time:
+                        index = [
+                            i for i, val in enumerate(self.quic_time)
+                            if val == timeptr
+                        ]
+                        for index_num in index:
+                            # TODO quic thread
+                            quic_thread = threading.Thread(
+                            target=sn_quic,
+                            args=(self.quic_src[index_num],
+                                  self.quic_des[index_num],
+                                  self.quic_time[index_num],
+                                  self.constellation_size,
+                                  self.container_id_list, self.file_path,
+                                  self.configuration_file_path,
+                                  self.remote_ssh))
+                            quic_thread.start()
+                            quic_threads.append(quic_thread)
                 if timeptr in self.route_time:
                     index = [
                         i for i, val in enumerate(self.route_time)
@@ -637,6 +681,8 @@ class sn_Emulation_Start_Thread(threading.Thread):
             ping_thread.join()
         for perf_thread in perf_threads:
             perf_thread.join()
+        for quic_thread in quic_threads:
+            quic_thread.join()
 
 
 def sn_check_utility(time_index, remote_ssh, file_path):
@@ -781,6 +827,36 @@ def sn_perf(src, des, time_index, constellation_size, container_id_list,
     f.writelines(perf_result)
     f.close()
 
+def sn_quic(src, des, time_index, constellation_size, container_id_list,
+            file_path, configuration_file_path, remote_ssh):
+    if des <= constellation_size:
+        ifconfig_ouput = sn_remote_cmd(
+            remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) + 
+            " ifconfig | sed 's/[ \t].*//;/^\(eth0\|\)\(lo\|\)$/d'")
+        des_IP = sn_remote_cmd(
+            remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) + 
+                        " ifconfig " + ifconfig_ouput[0][:-1] +
+            "|awk -F '[ :]+' 'NR==2{print $4}'")
+    else:
+        des_IP = sn_remote_cmd(
+        remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
+        " ifconfig B" + str(des) +
+        "-default |awk -F '[ :]+' 'NR==2{print $4}'")
+# TODO quic thread
+    sn_remote_cmd(
+        remote_ssh,
+        "docker exec -id " + str(container_id_list[des - 1]) + " python /home/aioquic/examples/http3_server.py --certificate /home/aioquic/tests/ssl_cert.pem --private-key /home/aioquic/tests/ssl_key.pem ")
+    print("quic server success", "docker exec -id " + str(container_id_list[des - 1]) + " python /home/aioquic/examples/http3_server.py --certificate /home/aioquic/tests/ssl_cert.pem --private-key /home/aioquic/tests/ssl_key.pem ")
+    quic_result = sn_remote_cmd(
+        remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
+        " python /home/aioquic/examples/http3_client.py --ca-certs /home/aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/ ")
+    print("quic client success", "python /home/aioquic/examples/http3_client.py --ca-certs /home/aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/" )
+    f = open(
+        configuration_file_path + "/" + file_path + "/quic-" + str(src) + "-" +
+        str(des) + "_" + str(time_index) + ".txt", "w")
+    f.writelines(quic_result)
+    f.close()
+    pass
 
 def sn_route(src, time_index, file_path, configuration_file_path,
              container_id_list, remote_ssh):

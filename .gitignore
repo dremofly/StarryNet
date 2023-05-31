@@ -54,3 +54,9 @@ dkms.conf
 .DS_Store
 .idea
 __pycache__
+
+# sensitive info
+config.json
+/run.sh
+/sync_server.sh
+/.prv

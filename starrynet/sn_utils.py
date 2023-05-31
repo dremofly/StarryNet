@@ -273,7 +273,8 @@ def sn_reset_docker_env(remote_ssh, docker_service_name, node_size):
     sn_remote_cmd(
         remote_ssh, "docker service create --replicas " + str(node_size) +
         " --name " + str(docker_service_name) +
-        " --cap-add ALL lwsen/starlab_node:1.0 ping www.baidu.com")
+        # " --cap-add ALL lwsen/starlab_node:1.0 ping www.baidu.com")
+        " --cap-add ALL mynode ping www.baidu.com")
 
 
 def sn_rename_all_container(remote_ssh, container_id_list, new_idx):

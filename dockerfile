@@ -19,4 +19,7 @@ COPY ./aioquic /home/aioquic
 # RUN alias python='/usr/local/bin/python3.10' # python版本绑定
 RUN ln -s /usr/local/bin/python3.10 /usr/bin/python 
 RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette
+
+COPY ./pyledbat /home/pyledbat
+
 EXPOSE 4433 4433

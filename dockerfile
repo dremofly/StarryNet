@@ -23,3 +23,5 @@ RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 a
 COPY ./pyledbat /home/pyledbat
 
 EXPOSE 4433 4433
+
+CMD bird -c /home/bird/brid.conf

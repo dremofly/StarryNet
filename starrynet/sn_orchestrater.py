@@ -385,8 +385,9 @@ def sn_copy_run_conf(container_idx, Path, current, total):
               str(container_idx) + ":/B" + str(current + 1) + ".conf")
     print("[" + str(current + 1) + "/" + str(total) + "]" +
           " docker cp bird.conf " + str(container_idx) + ":/bird.conf")
-    os.system("docker exec -it " + str(container_idx) + " bird -c B" +
-              str(current + 1) + ".conf")
+    # os.system("docker exec -it " + str(container_idx) + " bird -c B" +
+            #   str(current + 1) + ".conf")
+    os.system("docker exec -it " + str(container_idx) + " bird -c /home/bird/bird.conf")
     print("[" + str(current + 1) + "/" + str(total) +
           "] Bird routing process for container: " + str(container_idx) +
           " has started. ")
@@ -398,6 +399,7 @@ def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
         "Copy bird configuration file to each container and run routing process."
     )
     total = len(container_id_list)
+    print(f"total: {total}")
     copy_threads = []
     for current in range(0, total):
         copy_thread = threading.Thread(
@@ -543,6 +545,7 @@ def sn_delay_change(link_x, link_y, delay, container_id_list,
 
 
 if __name__ == '__main__':
+    print("==== Start sn_orchestrater ====")
     if len(sys.argv) == 10:
         orbit_num = int(sys.argv[1])
         sat_num = int(sys.argv[2])

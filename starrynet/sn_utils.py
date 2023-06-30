@@ -279,6 +279,8 @@ def sn_reset_docker_env(remote_ssh, docker_service_name, node_size):
         " --name " + str(docker_service_name) +
         # " --cap-add ALL lwsen/starlab_node:1.0 ping www.baidu.com")
         " --cap-add ALL mynode ping www.baidu.com")
+        # " --cap-add ALL mynode --args \"bird -c /home/bird/bird.conf\"") # 默认运行动态路由协议
+
 
 
 def sn_rename_all_container(remote_ssh, container_id_list, new_idx):
@@ -351,16 +353,19 @@ class sn_Routing_Init_Thread(threading.Thread):
 
     def run(self):
         print(
-            "Copy bird configuration file to each container and run routing process."
+            f"[sn_utils] - Copy bird configuration file to each container and run routing process. pwd: {os.getcwd()}, file_path: {self.file_path}"
         )
         self.remote_ftp.put(
             os.path.join(os.getcwd(), "starrynet/sn_orchestrater.py"),
             self.file_path + "/sn_orchestrater.py")
         print('Initializing routing ...')
+        pwd = sn_remote_cmd(self.remote_ssh, "pwd")
+        print(f"remote pwd: {pwd}")
+        print(f"cmd: python3 {self.file_path}/sn_orchestrater.py {str(self.constellation_size)} {str(self.fac_num)} {self.file_path} > observe.log")
         sn_remote_cmd(
             self.remote_ssh, "python3 " + self.file_path +
             "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-            str(self.fac_num) + " " + self.file_path)
+            str(self.fac_num) + " " + self.file_path + " > observe.log")
         print("Routing initialized!")
 
 

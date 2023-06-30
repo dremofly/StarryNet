@@ -112,6 +112,7 @@ class StarryNet():
 
     def create_nodes(self):
         # Initialize each machine in multiple threads.
+        print(f"==== create_nodes ==== {self.docker_service_name}, {self.node_size}, {self.container_id_list}")
         sn_thread = sn_Node_Init_Thread(self.remote_ssh,
                                         self.docker_service_name,
                                         self.node_size, self.container_id_list,
@@ -134,6 +135,7 @@ class StarryNet():
         print("Link initialization done.")
 
     def run_routing_deamon(self):
+        print("[function begin] - run_routing_deamon")
         routing_thread = sn_Routing_Init_Thread(
             self.remote_ssh, self.remote_ftp, self.orbit_number,
             self.sat_number, self.constellation_size, self.fac_num,

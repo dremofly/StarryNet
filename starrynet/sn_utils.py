@@ -319,6 +319,21 @@ class sn_Link_Init_Thread(threading.Thread):
         self.remote_ftp.put(
             os.path.join(os.getcwd(), "starrynet/sn_orchestrater.py"),
             self.file_path + "/sn_orchestrater.py")
+        
+        # 添加quic的代码
+        self.remote_ftp.put(
+            os.path.join(os.getcwd(), "aioquic.tar.gz"),
+            self.file_path + "/aioquic.tar.gz")
+        
+        # 添加pyledbat代码
+        self.remote_ftp.put(
+            os.path.join(os.getcwd(), "pyledbat.tar.gz"),
+            self.file_path + "/pyledbat.tar.gz")
+        
+        self.remote_ftp.put(
+            os.path.join(os.getcwd(), "Python-3.10.0.tgz"),
+            self.file_path + "/Python-3.10.0.tgz")
+        
         self.remote_ftp.put(
             self.configuration_file_path + "/" + self.file_path +
             '/delay/1.txt', self.file_path + "/1.txt")
@@ -362,11 +377,18 @@ class sn_Routing_Init_Thread(threading.Thread):
         pwd = sn_remote_cmd(self.remote_ssh, "pwd")
         print(f"remote pwd: {pwd}")
         print(f"cmd: python3 {self.file_path}/sn_orchestrater.py {str(self.constellation_size)} {str(self.fac_num)} {self.file_path} > observe.log")
-        sn_remote_cmd(
-            self.remote_ssh, "python3 " + self.file_path +
-            "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-            str(self.fac_num) + " " + self.file_path + " > observe.log")
-        print("Routing initialized!")
+        try:
+            sn_remote_cmd(
+                self.remote_ssh, "/home/hong/anaconda3/bin/python " + self.file_path +
+                "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
+                str(self.fac_num) + " " + self.file_path + " > observe.log")
+            print("Routing initialized!")
+        except Exception as e:
+            print("[ERROR] - ", e)
+            sn_remote_cmd(
+                self.remote_ssh, "python3 " + self.file_path +
+                "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
+                str(self.fac_num) + " " + self.file_path + " > observe.log")
 
 
 # A thread designed for emulation.
@@ -792,6 +814,7 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
             remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
             " ifconfig B" + str(des) +
             "-default |awk -F '[ :]+' 'NR==2{print $4}'")
+    # print(f"[sn_ping] - desIP {des_IP}\n")
     ping_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
         " ping " + str(des_IP[0][:-1]) + " -c 4 -i 0.01 ")
@@ -848,14 +871,22 @@ def sn_quic(src, des, time_index, constellation_size, container_id_list,
         " ifconfig B" + str(des) +
         "-default |awk -F '[ :]+' 'NR==2{print $4}'")
 # TODO quic thread
+    quic_path = "/home/aioquic"
+    # sn_remote_cmd(
+    #     remote_ssh,
+    #     "docker exec -id " + str(container_id_list[des - 1]) + " python3 /aioquic/examples/http3_server.py --certificate /aioquic/tests/ssl_cert.pem --private-key /aioquic/tests/ssl_key.pem ")
+    print(f"[sn_quic] src: {src} dec: {des}")
     sn_remote_cmd(
         remote_ssh,
-        "docker exec -id " + str(container_id_list[des - 1]) + " python /home/aioquic/examples/http3_server.py --certificate /home/aioquic/tests/ssl_cert.pem --private-key /home/aioquic/tests/ssl_key.pem ")
-    print("quic server success", "docker exec -id " + str(container_id_list[des - 1]) + " python /home/aioquic/examples/http3_server.py --certificate /home/aioquic/tests/ssl_cert.pem --private-key /home/aioquic/tests/ssl_key.pem ")
+        f"docker exec -id {container_id_list[des - 1]} python {quic_path}/examples/http3_server.py --certificate {quic_path}/tests/ssl_cert.pem --private-key {quic_path}/tests/ssl_key.pem ")
+    print(f"docker exec -id {container_id_list[des - 1]} python {quic_path}/examples/http3_server.py --certificate {quic_path}/tests/ssl_cert.pem --private-key {quic_path}/tests/ssl_key.pem ")
+    # quic_result = sn_remote_cmd(
+    #     remote_ssh, "docker exec -id " + str(container_id_list[src - 1]) +
+    #     " python /aioquic/examples/http3_client.py --ca-certs /aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/ ")
     quic_result = sn_remote_cmd(
-        remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " python /home/aioquic/examples/http3_client.py --ca-certs /home/aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/ ")
-    print("quic client success", "python /home/aioquic/examples/http3_client.py --ca-certs /home/aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/" )
+        remote_ssh, 
+        f"docker exec -i {container_id_list[src - 1]} python {quic_path}/examples/http3_client.py --ca-certs {quic_path}/tests/pycacert.pem https://{des_IP[0][:-1]}:4433/ ")
+    print(f"docker exec -i {container_id_list[src - 1]} python {quic_path}/examples/http3_client.py --ca-certs {quic_path}/tests/pycacert.pem https://{des_IP[0][:-1]}:4433/ ")
     f = open(
         configuration_file_path + "/" + file_path + "/quic-" + str(src) + "-" +
         str(des) + "_" + str(time_index) + ".txt", "w")

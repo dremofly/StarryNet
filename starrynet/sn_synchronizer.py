@@ -112,7 +112,7 @@ class StarryNet():
 
     def create_nodes(self):
         # Initialize each machine in multiple threads.
-        print(f"==== create_nodes ==== {self.docker_service_name}, {self.node_size}, {self.container_id_list}")
+        print(f"==== create_nodes ==== {self.docker_service_name}, {self.node_size}, {self.container_id_list}\n")
         sn_thread = sn_Node_Init_Thread(self.remote_ssh,
                                         self.docker_service_name,
                                         self.node_size, self.container_id_list,
@@ -121,7 +121,7 @@ class StarryNet():
         sn_thread.join()
         self.container_id_list = sn_get_container_info(self.remote_ssh)
         print("Constellation initialization done. " +
-              str(len(self.container_id_list)) + " have been created.")
+              str(len(self.container_id_list)) + " have been created.\n")
 
     def create_links(self):
         print("Create Links.")
@@ -238,7 +238,7 @@ class StarryNet():
             self.sr_time, self.damage_ratio, self.damage_time,
             self.damage_list, self.recovery_time, self.route_src,
             self.route_time, self.duration, self.utility_checking_time,
-            self.perf_src, self.perf_des, self.perf_time, self.quic_src, self.quic_src, self.quic_time)
+            self.perf_src, self.perf_des, self.perf_time, self.quic_src, self.quic_des, self.quic_time)
         sn_thread.start()
         sn_thread.join()
 

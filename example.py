@@ -17,7 +17,7 @@ if __name__ == "__main__":
     AS = [[1, 27]]  # Node #1 to Node #27 are within the same AS.
     GS_lat_long = [[50.110924, 8.682127], [46.635700, 14.311817]
                    ]  # latitude and longitude of frankfurt and  Austria
-    configuration_file_path = "./config.json"
+    configuration_file_path = "./config.json.503"
     hello_interval = 1  # hello_interval(s) in OSPF. 1-200 are supported.
 
     print('Start StarryNet.')
@@ -64,7 +64,9 @@ if __name__ == "__main__":
     node_index1 = 27
     time_index = 15
     # routing table of a node at a certain time. The output file will be written at the working directory.
-    sn.check_routing_table(node_index1, time_index)
+    for i in range(20, 25): # time 
+        for j in range(0, 26):
+            sn.check_routing_table(j+1, i)
 
     sat = 1
     des = 27
@@ -73,14 +75,14 @@ if __name__ == "__main__":
     # set the next hop at a certain time. Sat, Des and NextHopSat are indexes and Sat and NextHopSat are neighbors.
     sn.set_next_hop(sat, des, next_hop_sat, time_index)
 
-    node_index1 = 13
-    node_index2 = 14
-    time_index = 3
+    # node_index1 = 13
+    # node_index2 = 14
+    # time_index = 3
     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
-    sn.set_ping(node_index1, node_index2, time_index)
-    for i in range(35, 80):
-        node_index1 = 26
-        node_index2 = 27
+    # sn.set_ping(node_index1, node_index2, time_index)
+    for i in range(3, 80):
+        node_index1 = 11
+        node_index2 = 12
         time_index = i
         # ping msg of two nodes at a certain time. The output file will be written at the working directory.
         sn.set_ping(node_index1, node_index2, time_index)
@@ -90,6 +92,10 @@ if __name__ == "__main__":
     time_index = 4
     # perf msg of two nodes at a certain time. The output file will be written at the working directory.
     sn.set_perf(node_index1, node_index2, time_index)
+
+    node_index1 = 20
+    node_index2 = 21
+    time_index = 8
     sn.set_quic(node_index1, node_index2, time_index)
 
     sn.start_emulation()

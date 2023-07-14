@@ -3,6 +3,7 @@ import threading
 import sys
 from time import sleep
 import numpy
+import subprocess
 """
 Used in the remote machine for link updating, initializing links, damaging and recovering links and other functionalities。
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn) 
@@ -380,14 +381,51 @@ def sn_establish_GSL(container_id_list, matrix, GS_num, constellation_size, bw,
               str(j) + ".10")
 
 
-def sn_copy_run_conf(container_idx, Path, current, total):
+def sn_copy_run_conf(container_idx, path, Path, current, total):
     os.system("docker cp " + Path + "/B" + str(current + 1) + ".conf " +
               str(container_idx) + ":/B" + str(current + 1) + ".conf")
     print("[" + str(current + 1) + "/" + str(total) + "]" +
           " docker cp bird.conf " + str(container_idx) + ":/bird.conf")
-    # os.system("docker exec -it " + str(container_idx) + " bird -c B" +
-            #   str(current + 1) + ".conf")
-    os.system("docker exec -it " + str(container_idx) + " bird -c /home/bird/bird.conf")
+    
+    # 复制其他代码
+    # os.system("docker cp " + path + "/aioquic.tar.gz " +
+    #           str(container_idx) + ":/home/aioquic.tar.gz")
+    # os.system("docker cp " + path + "/pyledbat.tar.gz " +
+    #           str(container_idx) + ":/home/pyledbat.tar.gz")
+    # cpRes = subprocess.run(["docker", "cp", path + "/Python-3.10.0.tgz", str(container_idx) + ":/tmp/Python-3.10.0.tgz"], capture_output=True, text=True)
+    # print(f'[{current + 1}/{total}] [cpRes] {cpRes} {path}')
+
+
+    # # extract aioquic & pyledbat
+    # subprocess.run(["docker", "exec", str(container_idx), "tar", "-xzvf", "/home/aioquic.tar.gz"])
+    # subprocess.run(["docker", "exec", str(container_idx), "tar", "-xzvf", "/home/pyledbat.tar.gz"])
+
+    # # install python3 for running aioquic
+    # command = "cd /tmp && tar xzf Python-3.10.0.tgz"
+    # subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command])
+    # command = "cd /tmp/Python-3.10.0 && ./configure --enable-optimizations && make altinstall && apt install -y libssl-dev"
+    # installRes = subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command], capture_output=True, text=True)
+    # print(f'[{current + 1}/{total}] [installRes] {installRes}')
+    # command = "ln -s /usr/local/bin/python3.10 /usr/bin/python && python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette"
+    # pipRes = subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command], capture_output=True, text=True)
+    # print(f'[{current + 1}/{total}] [pipRes] {pipRes}')
+
+    print("[sn_copy_run_conf] container_idx ", container_idx)
+    try:
+        result = subprocess.run(["docker", "exec", str(container_idx), "bird", "-c", "B"+str(current+1)+".conf"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
+        print("[exec result] ", result.stdout)
+    except Exception as e:
+        print("Error: start bird error ", e)
+
+    try:
+        result2 = subprocess.run(["docker", "exec", str(container_idx), "birdc", "show", "protocol"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
+        print("[exec result2] ", result2.stdout)
+    except Exception as e:
+        print("Error: show protocol error ", e)
+              
+    print("docker exec -it " + str(container_idx) + " bird -c B" +
+              str(current + 1) + ".conf")
+    # os.system("docker exec -it " + str(container_idx) + " bird -c /home/bird/bird.conf") # 测试
     print("[" + str(current + 1) + "/" + str(total) +
           "] Bird routing process for container: " + str(container_idx) +
           " has started. ")
@@ -404,7 +442,7 @@ def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
     for current in range(0, total):
         copy_thread = threading.Thread(
             target=sn_copy_run_conf,
-            args=(container_id_list[current], path + "/conf/bird-" +
+            args=(container_id_list[current], path, path + "/conf/bird-" +
                   str(sat_node_number) + "-" + str(fac_node_number), current,
                   total))
         copy_threads.append(copy_thread)

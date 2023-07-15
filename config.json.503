@@ -6,7 +6,7 @@
     "Phase shift": 1,
     "# of orbit": 5,
     "# of satellites": 5,
-    "Duration (s)": 100,
+    "Duration (s)": 20,
     "update_time (s)": 10,
     "satellite link bandwidth (\"X\" Gbps)": 5,
     "sat-ground bandwidth (\"X\" Gbps)": 5,

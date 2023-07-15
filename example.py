@@ -80,12 +80,12 @@ if __name__ == "__main__":
     # time_index = 3
     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
     # sn.set_ping(node_index1, node_index2, time_index)
-    for i in range(3, 80):
-        node_index1 = 11
-        node_index2 = 12
-        time_index = i
-        # ping msg of two nodes at a certain time. The output file will be written at the working directory.
-        sn.set_ping(node_index1, node_index2, time_index)
+    # for i in range(3, 80):
+    #     node_index1 = 11
+    #     node_index2 = 12
+    #     time_index = i
+    #     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
+    #     sn.set_ping(node_index1, node_index2, time_index)
 
     node_index1 = 13
     node_index2 = 14
@@ -97,6 +97,12 @@ if __name__ == "__main__":
     node_index2 = 21
     time_index = 8
     sn.set_quic(node_index1, node_index2, time_index)
+
+
+    node_index1 = 5
+    node_index2 = 8
+    time_index = 12
+    sn.set_led(node_index1, node_index2, time_index) # set ledbat
 
     sn.start_emulation()
     # sn.stop_emulation()

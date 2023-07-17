@@ -321,20 +321,6 @@ class sn_Link_Init_Thread(threading.Thread):
             os.path.join(os.getcwd(), "starrynet/sn_orchestrater.py"),
             self.file_path + "/sn_orchestrater.py")
         
-        # 添加quic的代码
-        self.remote_ftp.put(
-            os.path.join(os.getcwd(), "aioquic.tar.gz"),
-            self.file_path + "/aioquic.tar.gz")
-        
-        # 添加pyledbat代码
-        self.remote_ftp.put(
-            os.path.join(os.getcwd(), "pyledbat.tar.gz"),
-            self.file_path + "/pyledbat.tar.gz")
-        
-        self.remote_ftp.put(
-            os.path.join(os.getcwd(), "Python-3.10.0.tgz"),
-            self.file_path + "/Python-3.10.0.tgz")
-        
         self.remote_ftp.put(
             self.configuration_file_path + "/" + self.file_path +
             '/delay/1.txt', self.file_path + "/1.txt")

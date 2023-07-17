@@ -15,6 +15,11 @@
 # Precompiled Headers
 *.gch
 *.pch
+build
+dist
+aioquic
+pyledbat
+starlink-*
 
 # Libraries
 *.lib

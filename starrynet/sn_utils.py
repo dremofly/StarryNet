@@ -843,7 +843,7 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
     # print(f"[sn_ping] - desIP {des_IP}\n")
     ping_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " ping " + str(des_IP[0][:-1]) + " -c 4 -i 0.01 ")
+        " ping " + str(des_IP[0][:-1]) + " -c 10 -i 0.01 ") # 执行4次
     f = open(
         configuration_file_path + "/" + file_path + "/ping-" + str(src) + "-" +
         str(des) + "_" + str(time_index) + ".txt", "w")

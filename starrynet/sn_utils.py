@@ -12,6 +12,7 @@ import random
 Starrynet utils that are used in sn_synchronizer
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn)
 """
+PYTHON_PATH="/home/hong/anaconda3/bin/python"
 try:
     import threading
 except ImportError:
@@ -44,6 +45,10 @@ def get_down_satellite(current_sat_id, current_orbit_id, sat_num):
     else:
         return [current_sat_id + 1, current_orbit_id]
 
+def run_orchestrater():
+    """
+    desc: run orchestrater module
+    """
 
 def sn_load_file(path, GS_lat_long):
     # f = open("./config.json", "r", encoding='utf8')
@@ -78,6 +83,7 @@ def sn_load_file(path, GS_lat_long):
     data['remote_machine_username'] = table["remote_machine_username"]
     data['remote_machine_password'] = table["remote_machine_password"]
     data['remote_machine_port'] = table["remote_machine_port"]
+    print(f"sn load files: {data}")
 
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--cons_name', type=str, default=data['cons_name'])
@@ -326,7 +332,7 @@ class sn_Link_Init_Thread(threading.Thread):
             '/delay/1.txt', self.file_path + "/1.txt")
         print('Initializing links ...')
         sn_remote_cmd(
-            self.remote_ssh, "python3 " + self.file_path +
+            self.remote_ssh, PYTHON_PATH + " " + self.file_path +
             "/sn_orchestrater.py" + " " + str(self.orbit_num) + " " +
             str(self.sat_num) + " " + str(self.constellation_size) + " " +
             str(self.fac_num) + " " + str(self.sat_bandwidth) + " " +
@@ -363,19 +369,19 @@ class sn_Routing_Init_Thread(threading.Thread):
         print('Initializing routing ...')
         pwd = sn_remote_cmd(self.remote_ssh, "pwd")
         print(f"remote pwd: {pwd}")
-        print(f"cmd: python3 {self.file_path}/sn_orchestrater.py {str(self.constellation_size)} {str(self.fac_num)} {self.file_path} > observe.log")
+        print(f"[sn_Routing_Init_Thread] {PYTHON_PATH} {self.file_path}/sn_orchestrater.py {str(self.constellation_size)} {str(self.fac_num)} {self.file_path} > observe_routing.log")
         try:
             sn_remote_cmd(
-                self.remote_ssh, "/home/hong/anaconda3/bin/python " + self.file_path +
+                self.remote_ssh, PYTHON_PATH + " " + self.file_path +
                 "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-                str(self.fac_num) + " " + self.file_path + " > observe.log")
+                str(self.fac_num) + " " + self.file_path + " > " + self.file_path + "/observe_routing.log")
             print("Routing initialized!")
         except Exception as e:
             print("[ERROR] - ", e)
             sn_remote_cmd(
-                self.remote_ssh, "python3 " + self.file_path +
+                self.remote_ssh, PYTHON_PATH + " " + self.file_path +
                 "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-                str(self.fac_num) + " " + self.file_path + " > observe.log")
+                str(self.fac_num) + " " + self.file_path + " > " + self.file_path + "/observe_routing.log")
 
 
 # A thread designed for emulation.
@@ -742,8 +748,8 @@ def sn_update_delay(file_path, configuration_file_path, timeptr,
         '.txt', file_path + '/' + str(timeptr) + '.txt')
     sn_remote_cmd(
         remote_ssh,
-        "python3 " + file_path + "/sn_orchestrater.py " + file_path + '/' +
-        str(timeptr) + '.txt ' + str(constellation_size) + " update")
+        PYTHON_PATH + " " + file_path + "/sn_orchestrater.py " + file_path + '/' +
+        str(timeptr) + '.txt ' + str(constellation_size) + " update" + " > " + file_path+'/orche'+str(timeptr)+'.log')
     print("Delay updating done.\n")
 
 
@@ -765,7 +771,7 @@ def sn_damage(ratio, damage_list, constellation_size, remote_ssh, remote_ftp,
         configuration_file_path + "/" + file_path +
         '/mid_files/damage_list.txt', file_path + "/damage_list.txt")
     sn_remote_cmd(remote_ssh,
-                  "python3 " + file_path + "/sn_orchestrater.py " + file_path)
+                  PYTHON_PATH + " " + file_path + "/sn_orchestrater.py " + file_path + " > " + file_path + "/orche_damage.log")
     print("Damage done.\n")
 
 
@@ -782,8 +788,9 @@ def sn_recover(damage_list, sat_loss, remote_ssh, remote_ftp, file_path,
         configuration_file_path + "/" + file_path +
         '/mid_files/damage_list.txt', file_path + "/damage_list.txt")
     sn_remote_cmd(
-        remote_ssh, "python3 " + file_path + "/sn_orchestrater.py " +
-        file_path + " " + str(sat_loss))
+        remote_ssh, PYTHON_PATH + " " + file_path + "/sn_orchestrater.py " +
+        file_path + " " + str(sat_loss) + " > orche_recover_"+time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())+".log" )
+    print(f"{PYTHON_PATH} {file_path}/sn_orchestrater.py {file_path} {sat_loss}")
     cumulated_damage_list.clear()
     print("Link recover done.\n")
 
@@ -1079,4 +1086,4 @@ class sn_Emulation_Stop_Thread(threading.Thread):
             os.path.join(os.getcwd(), "starrynet/sn_orchestrater.py"),
             self.file_path + "/sn_orchestrater.py")
         sn_remote_cmd(self.remote_ssh,
-                      "python3 " + self.file_path + "/sn_orchestrater.py")
+                      PYTHON_PATH + " " + self.file_path + "/sn_orchestrater.py")

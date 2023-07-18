@@ -413,13 +413,13 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
     print("[sn_copy_run_conf] container_idx ", container_idx)
     try:
         result = subprocess.run(["docker", "exec", str(container_idx), "bird", "-c", "B"+str(current+1)+".conf"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
-        print("[exec result] ", result.stdout)
+        # print("[exec result] ", result.stdout)
     except Exception as e:
         print("Error: start bird error ", e)
 
     try:
         result2 = subprocess.run(["docker", "exec", str(container_idx), "birdc", "show", "protocol"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
-        print("[exec result2] ", result2.stdout)
+        # print("[exec result2] ", result2.stdout)
     except Exception as e:
         print("Error: show protocol error ", e)
               

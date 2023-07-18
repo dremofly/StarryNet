@@ -386,29 +386,6 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
               str(container_idx) + ":/B" + str(current + 1) + ".conf")
     print("[" + str(current + 1) + "/" + str(total) + "]" +
           " docker cp bird.conf " + str(container_idx) + ":/bird.conf")
-    
-    # 复制其他代码
-    # os.system("docker cp " + path + "/aioquic.tar.gz " +
-    #           str(container_idx) + ":/home/aioquic.tar.gz")
-    # os.system("docker cp " + path + "/pyledbat.tar.gz " +
-    #           str(container_idx) + ":/home/pyledbat.tar.gz")
-    # cpRes = subprocess.run(["docker", "cp", path + "/Python-3.10.0.tgz", str(container_idx) + ":/tmp/Python-3.10.0.tgz"], capture_output=True, text=True)
-    # print(f'[{current + 1}/{total}] [cpRes] {cpRes} {path}')
-
-
-    # # extract aioquic & pyledbat
-    # subprocess.run(["docker", "exec", str(container_idx), "tar", "-xzvf", "/home/aioquic.tar.gz"])
-    # subprocess.run(["docker", "exec", str(container_idx), "tar", "-xzvf", "/home/pyledbat.tar.gz"])
-
-    # # install python3 for running aioquic
-    # command = "cd /tmp && tar xzf Python-3.10.0.tgz"
-    # subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command])
-    # command = "cd /tmp/Python-3.10.0 && ./configure --enable-optimizations && make altinstall && apt install -y libssl-dev"
-    # installRes = subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command], capture_output=True, text=True)
-    # print(f'[{current + 1}/{total}] [installRes] {installRes}')
-    # command = "ln -s /usr/local/bin/python3.10 /usr/bin/python && python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette"
-    # pipRes = subprocess.run(["docker", "exec", str(container_idx), "bash", "-c", command], capture_output=True, text=True)
-    # print(f'[{current + 1}/{total}] [pipRes] {pipRes}')
 
     print("[sn_copy_run_conf] container_idx ", container_idx)
     try:

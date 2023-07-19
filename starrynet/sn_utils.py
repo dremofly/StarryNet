@@ -337,7 +337,7 @@ class sn_Link_Init_Thread(threading.Thread):
             str(self.sat_num) + " " + str(self.constellation_size) + " " +
             str(self.fac_num) + " " + str(self.sat_bandwidth) + " " +
             str(self.sat_loss) + " " + str(self.sat_ground_bandwidth) + " " +
-            str(self.sat_ground_loss) + " " + self.file_path + "/1.txt")
+            str(self.sat_ground_loss) + " " + self.file_path + "/1.txt" + " > " + self.file_path + "/init_routing.log")
 
 
 # A thread designed for initializing bird routing.
@@ -433,6 +433,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
             self.container_id_list = sn_get_container_info(self.remote_ssh)
 
     def run(self):
+        print(f"[func begin] - sn_Emulation_Start_Thread")
         ping_threads = []
         perf_threads = []
         quic_threads = []
@@ -442,6 +443,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         fi = open(topo_change_file_path, 'r')
         line = fi.readline()
         while line:  # starting reading change information and emulating
+            print(f"line: {line}")
             words = line.split()
             if words[0] == 'time':
                 print('Emulation in No.' + str(timeptr) + ' second.')
@@ -581,9 +583,12 @@ class sn_Emulation_Start_Thread(threading.Thread):
                     print('Emulation in No.' + str(timeptr) + ' second.')
                 print("A change in time " + current_time + ':')
                 line = fi.readline()
+                print(f"line: {line}")
                 words = line.split()
                 line = fi.readline()
+                print(f"line: {line}")
                 line = fi.readline()
+                print(f"line: {line}")
                 words = line.split()
                 while words[0] != 'del:':  # addlink
                     word = words[0].split('-')
@@ -603,8 +608,10 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                          self.sat_ground_loss, s, f,
                                          self.remote_ssh)
                     line = fi.readline()
+                    print(f"line: {line}")
                     words = line.split()
                 line = fi.readline()
+                print(f"line: {line}")
                 words = line.split()
                 if len(words) == 0:
                     return
@@ -619,6 +626,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                     print("del link " + str(s) + "-" + str(f) + "\n")
                     sn_del_link(s, f, self.container_id_list, self.remote_ssh)
                     line = fi.readline()
+                    print(f"line: {line}")
                     words = line.split()
                     if len(words) == 0:
                         return
@@ -796,24 +804,40 @@ def sn_recover(damage_list, sat_loss, remote_ssh, remote_ftp, file_path,
 
 
 def sn_sr(src, des, target, container_id_list, remote_ssh):
+    print(f"[thread begin] - sn_sr. src: {src}, des: {des}, target: {target}")
     ifconfig_output = sn_remote_cmd(
         remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
         " ifconfig | sed 's/[ \t].*//;/^\(eth0\|\)\(lo\|\)$/d'")
+    print(f"ifconfig_output: {ifconfig_output}")
+
     des_IP = sn_remote_cmd(
         remote_ssh,
         "docker exec -it " + str(container_id_list[des - 1]) + " ifconfig " +
         ifconfig_output[0][:-1] + "|awk -F '[ :]+' 'NR==2{print $4}'")
+    print(f"des_IP: {des_IP}")
+
     target_IP = sn_remote_cmd(
         remote_ssh, "docker exec -it " + str(container_id_list[target - 1]) +
         " ifconfig B" + str(target) + "-eth" + str(src) +
         "|awk -F '[ :]+' 'NR==2{print $4}'")
+    print(f"target_IP: {target_IP}")
+    
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[src - 1]) +
         " ip route del " + str(des_IP[0][:-3]) + "0/24")
+    print(
+        "docker exec -d " + str(container_id_list[src - 1]) +
+        " ip route del " + str(des_IP[0][:-3]) + "0/24")
+
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[src - 1]) +
         " ip route add " + str(des_IP[0][:-3]) + "0/24 dev B%d-eth%d via " %
         (src, target) + target_IP[0])
+    print(
+        "docker exec -d " + str(container_id_list[src - 1]) +
+        " ip route add " + str(des_IP[0][:-3]) + "0/24 dev B%d-eth%d via " %
+        (src, target) + target_IP[0])
+
     print("docker exec -d " + str(container_id_list[src - 1]) +
           " ip route add " + str(des_IP[0][:-3]) + "0/24 dev B%d-eth%d via " %
           (src, target) + target_IP[0])
@@ -821,6 +845,7 @@ def sn_sr(src, des, target, container_id_list, remote_ssh):
 
 def sn_ping(src, des, time_index, constellation_size, container_id_list,
             file_path, configuration_file_path, remote_ssh):
+    print(f"[sn_ping] from {src} to {des}")
     if des <= constellation_size:
         ifconfig_output = sn_remote_cmd(
             remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
@@ -837,7 +862,7 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
     # print(f"[sn_ping] - desIP {des_IP}\n")
     ping_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " ping " + str(des_IP[0][:-1]) + " -c 10 -i 0.01 ") # 执行4次
+        " ping " + str(des_IP[0][:-1]) + " -c 1000 -i 0.01 ") # 执行4次
     f = open(
         configuration_file_path + "/" + file_path + "/ping-" + str(src) + "-" +
         str(des) + "_" + str(time_index) + ".txt", "w")
@@ -968,6 +993,7 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
                          loss, sat_index, GS_index, remote_ssh):
     i = sat_index
     j = GS_index
+    print("[func begin] - sn_establish_new_GSL: sat_index {i}, GS_index {j}")
     # IP address  (there is a link between i and j)
     delay = str(matrix[i - 1][j - 1])
     address_16_23 = (j - constellation_size) & 0xff
@@ -977,6 +1003,8 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
     sn_remote_cmd(
         remote_ssh, 'docker network create ' + GSL_name + " --subnet 9." +
         str(address_16_23) + "." + str(address_8_15) + ".0/24")
+    print('docker network create ' + GSL_name + " --subnet 9." +
+        str(address_16_23) + "." + str(address_8_15) + ".0/24")
     print('[Create GSL:]' + 'docker network create ' + GSL_name +
           " --subnet 9." + str(address_16_23) + "." + str(address_8_15) +
           ".0/24")
@@ -984,32 +1012,61 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
         remote_ssh, 'docker network connect ' + GSL_name + " " +
         str(container_id_list[i - 1]) + " --ip 9." + str(address_16_23) + "." +
         str(address_8_15) + ".50")
+    print(
+        'docker network connect ' + GSL_name + " " +
+        str(container_id_list[i - 1]) + " --ip 9." + str(address_16_23) + "." +
+        str(address_8_15) + ".50")
     ifconfig_output = sn_remote_cmd(
         remote_ssh, "docker exec -it " + str(container_id_list[i - 1]) +
         " ip addr | grep -B 2 9." + str(address_16_23) + "." +
         str(address_8_15) +
-        ".50 | head -n 1 | awk -F: '{ print $2 }' | tr -d [:blank:]")
+        ".50 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
+    print(
+        "docker exec -it " + str(container_id_list[i - 1]) +
+        " ip addr | grep -B 2 9." + str(address_16_23) + "." +
+        str(address_8_15) +
+        ".50 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank]'")
+    print(f"ifconfig_output {ifconfig_output}")
+
     target_interface = str(ifconfig_output[0]).split("@")[0]
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
+        " ip link set dev " + target_interface + " down")
+    print("docker exec -d " + str(container_id_list[i - 1]) +
         " ip link set dev " + target_interface + " down")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
         " ip link set dev " + target_interface + " name " + "B" +
         str(i - 1 + 1) + "-eth" + str(j))
+    print("docker exec -d " + str(container_id_list[i - 1]) +
+        " ip link set dev " + target_interface + " name " + "B" +
+        str(i - 1 + 1) + "-eth" + str(j))
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
         " ip link set dev B" + str(i - 1 + 1) + "-eth" + str(j) + " up")
+    print("docker exec -d " + str(container_id_list[i - 1]) +
+        " ip link set dev B" + str(i - 1 + 1) + "-eth" + str(j) + " up")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
+        " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
+        " root netem delay " + str(delay) + "ms")
+    print("docker exec -d " + str(container_id_list[i - 1]) +
         " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
         " root netem delay " + str(delay) + "ms")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
         " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
         " root netem loss " + str(loss) + "%")
+    print(
+        "docker exec -d " + str(container_id_list[i - 1]) +
+        " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
+        " root netem loss " + str(loss) + "%")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[i - 1]) +
+        " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
+        " root netem rate " + str(bw) + "Gbps")
+    print(
+        "docker exec -d " + str(container_id_list[i - 1]) +
         " tc qdisc add dev B" + str(i - 1 + 1) + "-eth" + str(j) +
         " root netem rate " + str(bw) + "Gbps")
     print('[Add current node:]' + 'docker network connect ' + GSL_name + " " +
@@ -1019,56 +1076,105 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
         remote_ssh, 'docker network connect ' + GSL_name + " " +
         str(container_id_list[j - 1]) + " --ip 9." + str(address_16_23) + "." +
         str(address_8_15) + ".60")
+    print(
+        'docker network connect ' + GSL_name + " " +
+        str(container_id_list[j - 1]) + " --ip 9." + str(address_16_23) + "." +
+        str(address_8_15) + ".60")
     ifconfig_output = sn_remote_cmd(
         remote_ssh, "docker exec -it " + str(container_id_list[j - 1]) +
         " ip addr | grep -B 2 9." + str(address_16_23) + "." +
         str(address_8_15) +
-        ".60 | head -n 1 | awk -F: '{ print $2 }' | tr -d [:blank:]")
+        ".60 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
     target_interface = str(ifconfig_output[0]).split("@")[0]
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
+        " ip link set dev " + target_interface + " down")
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
         " ip link set dev " + target_interface + " down")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
         " ip link set dev " + target_interface + " name " + "B" + str(j) +
         "-eth" + str(i - 1 + 1))
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
+        " ip link set dev " + target_interface + " name " + "B" + str(j) +
+        "-eth" + str(i - 1 + 1))
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
         " ip link set dev B" + str(j) + "-eth" + str(i - 1 + 1) + " up")
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
+        " ip link set dev B" + str(j) + "-eth" + str(i - 1 + 1) + " up")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
+        " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
+        " root netem delay " + str(delay) + "ms")
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
         " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
         " root netem delay " + str(delay) + "ms")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
         " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
         " root netem loss " + str(loss) + "%")
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
+        " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
+        " root netem loss " + str(loss) + "%")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
+        " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
+        " root netem rate " + str(bw) + "Gbps")
+    print(
+        "docker exec -d " + str(container_id_list[j - 1]) +
         " tc qdisc add dev B" + str(j) + "-eth" + str(i - 1 + 1) +
         " root netem rate " + str(bw) + "Gbps")
     print('[Add right node:]' + 'docker network connect ' + GSL_name + " " +
           str(container_id_list[j - 1]) + " --ip 10." + str(address_16_23) +
           "." + str(address_8_15) + ".60")
+    print("[func end] - sn_establish_new_GSL")
 
 
 def sn_del_link(first_index, second_index, container_id_list, remote_ssh):
+    print("[func begin] - sn_del_link")
     sn_remote_cmd(
         remote_ssh, "docker exec -d " +
         str(container_id_list[second_index - 1]) + " ip link set dev B" +
         str(second_index) + "-eth" + str(first_index) + " down")
+    print(
+        "docker exec -d " +
+        str(container_id_list[second_index - 1]) + " ip link set dev B" +
+        str(second_index) + "-eth" + str(first_index) + " down")
+
     sn_remote_cmd(
         remote_ssh, "docker exec -d " +
         str(container_id_list[first_index - 1]) + " ip link set dev B" +
         str(first_index) + "-eth" + str(second_index) + " down")
+    print(
+        "docker exec -d " +
+        str(container_id_list[first_index - 1]) + " ip link set dev B" +
+        str(first_index) + "-eth" + str(second_index) + " down")
+
     GSL_name = "GSL_" + str(first_index) + "-" + str(second_index)
     sn_remote_cmd(
         remote_ssh, 'docker network disconnect ' + GSL_name + " " +
         str(container_id_list[first_index - 1]))
+    print(
+        'docker network disconnect ' + GSL_name + " " +
+        str(container_id_list[first_index - 1]))
+
     sn_remote_cmd(
         remote_ssh, 'docker network disconnect ' + GSL_name + " " +
         str(container_id_list[second_index - 1]))
+    print(
+        'docker network disconnect ' + GSL_name + " " +
+        str(container_id_list[second_index - 1]))
+
     sn_remote_cmd(remote_ssh, 'docker network rm ' + GSL_name)
+    print('docker network rm ' + GSL_name)
+
+    print("[func end] - sn_del_link")
 
 
 # A thread designed for stopping the emulation.

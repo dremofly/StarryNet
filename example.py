@@ -53,56 +53,73 @@ if __name__ == "__main__":
     IP_list = sn.get_IP(node_index1)
     print("IP: " + str(IP_list))
 
-    ratio = 0.3
+    ratio = 0.4
     time_index = 5
     # random damage of a given ratio at a certain time
-    sn.set_damage(ratio, time_index)
+    # sn.set_damage(ratio, time_index)
+
+    time_index = 25
+    # random damage of a given ratio at a certain time
+    # sn.set_damage(ratio, time_index)
 
     time_index = 10
-    sn.set_recovery(time_index)  # recover the damages at a certain time
+    # sn.set_recovery(time_index)  # recover the damages at a certain time
+
+    time_index = 50
+    # sn.set_recovery(time_index)  # recover the damages at a certain time
 
     node_index1 = 27
     time_index = 15
     # routing table of a node at a certain time. The output file will be written at the working directory.
-    for i in range(20, 25): # time 
-        for j in range(0, 26):
-            sn.check_routing_table(j+1, i)
+    # for i in range(20, 25): # time 
+    #     for j in range(0, 26):
+    #         sn.check_routing_table(j+1, i)
 
     sat = 1
     des = 27
     next_hop_sat = 2
-    time_index = 20
+    time_index = 10
     # set the next hop at a certain time. Sat, Des and NextHopSat are indexes and Sat and NextHopSat are neighbors.
-    sn.set_next_hop(sat, des, next_hop_sat, time_index)
+    # sn.set_next_hop(sat, des, next_hop_sat, time_index)
 
     # node_index1 = 13
     # node_index2 = 14
     # time_index = 3
-    # ping msg of two nodes at a certain time. The output file will be written at the working directory.
+    # # ping msg of two nodes at a certain time. The output file will be written at the working directory.
     # sn.set_ping(node_index1, node_index2, time_index)
-    # for i in range(3, 80):
-    #     node_index1 = 11
-    #     node_index2 = 12
-    #     time_index = i
-    #     # ping msg of two nodes at a certain time. The output file will be written at the working directory.
-    #     sn.set_ping(node_index1, node_index2, time_index)
+    count = 6
+    for i in range(1, 80, 15):
+        for ni in range(1, 3):
+            node_index1 = ni
+            node_index2 = ni + count
+            time_index = i
+            sn.set_ping(node_index1, node_index2, time_index)
+        count+=1
 
-    node_index1 = 13
-    node_index2 = 14
-    time_index = 4
-    # perf msg of two nodes at a certain time. The output file will be written at the working directory.
-    sn.set_perf(node_index1, node_index2, time_index)
+    # perf example
+    # node_index1 = 13
+    # node_index2 = 14
+    # time_index = 4
+    # sn.set_perf(node_index1, node_index2, time_index)
+    # for i in range(1, 80, 10):
+        # for ni in range(1, 4):
+            # node_index1 = ni
+            # node_index2 = ni + 6
+            # time_index = i
+            # sn.set_perf(node_index1, node_index2, time_index)
 
-    node_index1 = 20
-    node_index2 = 21
-    time_index = 8
-    sn.set_quic(node_index1, node_index2, time_index)
+    # quic example
+    # node_index1 = 20
+    # node_index2 = 21
+    # time_index = 8
+    # sn.set_quic(node_index1, node_index2, time_index)
 
 
-    node_index1 = 5
-    node_index2 = 8
-    time_index = 12
-    sn.set_led(node_index1, node_index2, time_index) # set ledbat
+    # ledbat example
+    # node_index1 = 5
+    # node_index2 = 8
+    # time_index = 12
+    # sn.set_led(node_index1, node_index2, time_index) # set ledbat
 
     sn.start_emulation()
     # sn.stop_emulation()

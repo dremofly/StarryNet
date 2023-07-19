@@ -45,6 +45,7 @@ class StarryNet():
         self.container_global_idx = 1
         self.hello_interval = hello_interval
         self.AS = AS
+        print(f"[func begin] - sn_synchronizer sat_loss {self.sat_loss}, sat_ground_loss {self.sat_ground_loss}")
         self.configuration_file_path = os.path.dirname(
             os.path.abspath(configuration_file_path))
         self.file_path = './' + sn_args.cons_name + '-' + str(

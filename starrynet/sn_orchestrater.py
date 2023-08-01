@@ -499,13 +499,13 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
     print("[sn_copy_run_conf] container_idx ", container_idx)
     try:
         result = subprocess.run(["docker", "exec", str(container_idx), "bird", "-c", "B"+str(current+1)+".conf"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
-        # print("[exec result] ", result.stdout)
+        print(f"[exec result {current+1}] ", result.stdout)
     except Exception as e:
         print("Error: start bird error ", e)
 
     try:
         result2 = subprocess.run(["docker", "exec", str(container_idx), "birdc", "show", "protocol"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
-        # print("[exec result2] ", result2.stdout)
+        print(f"[exec result2 {current+1}] ", result2.stdout)
     except Exception as e:
         print("Error: show protocol error ", e)
               
@@ -515,6 +515,13 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
     print("[" + str(current + 1) + "/" + str(total) +
           "] Bird routing process for container: " + str(container_idx) +
           " has started. ")
+
+def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
+    print("[" + str(current + 1) + "/" + str(total) + "]" +
+        f" docker cp {Path} {container_idx}:/fisco")
+    
+    os.system("docker cp " + Path + " " + str(container_idx) + ":/fisco")
+    subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
@@ -540,8 +547,45 @@ def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
     sleep(120)
     print("Routing initialized!")
 
+def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
+    print(
+        "Copy FISCO conf file to each ground station container and run blockchain node process."
+    )
+    
+    total = len(container_id_list)
+    # 生成配置文件
+    print(f"total: {total}")
+    
+    with open(os.path.join(path, 'ipconf'), 'w') as f:
+        for gs_idx in range(total-fac_node_number, total):
+            print(f"{total-fac_node_number} {gs_idx}")
+            idx = gs_idx + 1
+            f.write(f"9.{idx}.{idx}.10 agencyA 1\n")
+    
+    print(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"])
+    conf_fisco = subprocess.run(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"], capture_output=True, text=True)
+    print(f"Generate FISCO conf {conf_fisco.stdout}")
+
+    copy_threads = []
+    for current in range(total-fac_node_number, total):
+        print("sn_copy_blockchain_conf")
+        idx = current + 1
+        copy_thread = threading.Thread(
+            # TODO: 添加fisco的配置
+            target=sn_copy_blockchain_conf,
+            args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+        )
+        copy_threads.append(copy_thread)
+    for copy_thread in copy_threads:
+        copy_thread.start()
+    for copy_thread in copy_threads:
+        copy_thread.join()
+    print("Initializing blockchain network")
+    sleep(120)
+    print("Blockchain initialized!")
 
 def sn_damage_link(sat_index, container_id_list):
+
     with os.popen(
             "docker exec -it " + str(container_id_list[sat_index]) +
             " ifconfig | sed 's/[ \t].*//;/^\(eth0\|\)\(lo\|\)$/d'") as f:
@@ -726,6 +770,7 @@ if __name__ == '__main__':
             container_id_list = sn_get_container_info()
             sn_update_delay(matrix, container_id_list, constellation_size)
         else:
+            # function: routing_init
             constellation_size = int(sys.argv[1])
             GS_num = int(sys.argv[2])
             path = sys.argv[3]
@@ -733,6 +778,16 @@ if __name__ == '__main__':
             sn_copy_run_conf_to_each_container(container_id_list,
                                                constellation_size, GS_num,
                                                path)
+
+    elif len(sys.argv) == 5:
+        if sys.argv[4] == "blockchain":
+            # Init blockchain network
+            constellation_size = int(sys.argv[1])
+            GS_num = int(sys.argv[2])
+            path = sys.argv[3]
+            container_id_list = sn_get_container_info()
+            print(container_id_list)
+            sn_copy_run_blockchain_to_each_gs(container_id_list, GS_num, path)
     elif len(sys.argv) == 2:
         path = sys.argv[1]
         random_list = numpy.loadtxt(path + "/damage_list.txt")

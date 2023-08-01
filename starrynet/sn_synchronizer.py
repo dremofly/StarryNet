@@ -86,6 +86,9 @@ class StarryNet():
         self.perf_src = []
         self.perf_des = []
         self.perf_time = []
+        self.perf2_src = []
+        self.perf2_des = []
+        self.perf2_time = []
         self.quic_src = []
         self.quic_des = []
         self.quic_time = []
@@ -148,6 +151,19 @@ class StarryNet():
         routing_thread.start()
         routing_thread.join()
         print("Bird routing in all containers are running.")
+    
+    def run_blockchain_nodes(self):
+        """
+        在ground station中运行
+        """
+        blockchain_thread = sn_Blockchain_Init_Thread(
+            self.remote_ssh, self.remote_ftp, self.orbit_number,
+            self.sat_number, self.constellation_size, self.fac_num,
+            self.file_path, self.sat_bandwidth, self.sat_ground_bandwidth,
+            self.sat_loss, self.sat_ground_loss)
+        blockchain_thread.start()
+        blockchain_thread.join()
+        print("All blockchain nodes are started.")
 
     def get_distance(self, sat1_index, sat2_index, time_index):
         delaypath = self.configuration_file_path + "/" + self.file_path + '/delay/' + str(
@@ -225,6 +241,11 @@ class StarryNet():
         self.perf_des.append(sat2_index)
         self.perf_time.append(time_index)
 
+    def set_perf2(self, sat1_index, sat2_index, time_index):
+        self.perf2_src.append(sat1_index)
+        self.perf2_des.append(sat2_index)
+        self.perf2_time.append(time_index)
+
     def set_quic(self, sat1_index, sat2_index, time_index):
         self.quic_src.append(sat1_index)
         self.quic_des.append(sat2_index)
@@ -247,7 +268,7 @@ class StarryNet():
             self.sr_time, self.damage_ratio, self.damage_time,
             self.damage_list, self.recovery_time, self.route_src,
             self.route_time, self.duration, self.utility_checking_time,
-            self.perf_src, self.perf_des, self.perf_time, self.quic_src, self.quic_des, self.quic_time, self.led_src, self.led_des, self.led_time)
+            self.perf_src, self.perf_des, self.perf_time, self.perf2_src, self.perf2_des, self.perf2_time, self.quic_src, self.quic_des, self.quic_time, self.led_src, self.led_des, self.led_time)
         sn_thread.start()
         sn_thread.join()
 

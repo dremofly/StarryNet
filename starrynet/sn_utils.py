@@ -83,7 +83,7 @@ def sn_load_file(path, GS_lat_long):
     data['remote_machine_username'] = table["remote_machine_username"]
     data['remote_machine_password'] = table["remote_machine_password"]
     data['remote_machine_port'] = table["remote_machine_port"]
-    print(f"sn load files: {data}")
+    print(f"sn load files, path: {path};\n config: {data}")
 
     parser = argparse.ArgumentParser(description='manual to this script')
     parser.add_argument('--cons_name', type=str, default=data['cons_name'])
@@ -383,6 +383,74 @@ class sn_Routing_Init_Thread(threading.Thread):
                 "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
                 str(self.fac_num) + " " + self.file_path + " > " + self.file_path + "/observe_routing.log")
 
+# A thread used to init blockchain network
+class sn_Blockchain_Init_Thread(threading.Thread):
+    def __init__(self, remote_ssh, remote_ftp, orbit_num, sat_num,
+                 constellation_size, fac_num, file_path, sat_bandwidth,
+                 sat_ground_bandwidth, sat_loss, sat_ground_loss):
+        threading.Thread.__init__(self)
+        self.remote_ssh = remote_ssh
+        self.constellation_size = constellation_size
+        self.fac_num = fac_num
+        self.orbit_num = orbit_num
+        self.sat_num = sat_num
+        self.file_path = file_path
+        self.sat_bandwidth = sat_bandwidth
+        self.sat_ground_bandwidth = sat_ground_bandwidth
+        self.sat_loss = sat_loss
+        self.sat_ground_loss = sat_ground_loss
+        self.remote_ftp = remote_ftp
+    def run(self):
+        print(f"Thread sn_Blockchain_Init")
+        self.remote_ftp.put(
+            os.path.join(os.getcwd(), "starrynet/sn_orchestrater.py"),
+            self.file_path + "/sn_orchestrater.py")
+
+        self.remote_ftp.put(
+            os.path.join(os.getcwd(), "build/fisco/build_chain.sh"),
+            self.file_path + "/build_chain.sh")
+
+        print('Initialize Blockchain network')
+        pwd = sn_remote_cmd(self.remote_ssh, "pwd")
+        print(f"remote pwd: {pwd}")
+        try:
+            sn_remote_cmd(
+                self.remote_ssh, PYTHON_PATH + " " + self.file_path +
+                "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
+                str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+            print("Routing initialized!")
+        except Exception as e:
+            print("[ERROR] - ", e)
+            sn_remote_cmd(
+                self.remote_ssh, PYTHON_PATH + " " + self.file_path +
+                "/sn_orchestrater.py" + " " +
+                str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+
+        
+
+        # with os.popen("docker ps") as f:
+        #     all_container_info = f.readlines()
+        #     n_container = len(all_container_info)
+        # container_id_list = []
+        # for container_idx in range(1, n_container + 1):
+        #     container_id_list.append(all_container_info[container_idx-1].split()[0])
+        # print()
+        # for container_idx in range(1, n_container + 1):
+        #     if container_idx >= self.constellation_size:
+        #         print(f"container_idx: {container_idx}")
+        #         container_id_list.append(all_container_info[container_idx-1].split()[0])
+        #         print(all_container_info[container_idx-1].split()[0])
+        #         target_IP = sn_remote_cmd(
+        #             self.remote_ssh, "docker exec -it " + str(container_id_list[container_idx-1]) +
+        #             " ifconfig")
+        #         print(f"target_IP: {target_IP}")
+        # with open('build/fisco/ipconf', 'w') as f:
+        #     for gs_idx in range(self.constellation_size+1, n_container):
+        #         f.write(f"9.{gs_idx}.{gs_idx}.10 agencyA 1\n")
+        #     f.close()
+        # sn_remote_cmd(
+        #     self.remote_ssh, "bash build_fisco.sh >> build_fisco.log")
+        
 
 # A thread designed for emulation.
 class sn_Emulation_Start_Thread(threading.Thread):
@@ -393,7 +461,8 @@ class sn_Emulation_Start_Thread(threading.Thread):
                  ping_src, ping_des, ping_time, sr_src, sr_des, sr_target,
                  sr_time, damage_ratio, damage_time, damage_list,
                  recovery_time, route_src, route_time, duration,
-                 utility_checking_time, perf_src, perf_des, perf_time, quic_src, quic_des, quic_time, led_src, led_des, led_time):
+                 utility_checking_time, perf_src, perf_des, perf_time, perf2_src, perf2_des, perf2_time, 
+                 quic_src, quic_des, quic_time, led_src, led_des, led_time):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
         self.remote_ftp = remote_ftp
@@ -411,6 +480,9 @@ class sn_Emulation_Start_Thread(threading.Thread):
         self.perf_src = perf_src
         self.perf_des = perf_des
         self.perf_time = perf_time
+        self.perf2_src = perf2_src
+        self.perf2_des = perf2_des
+        self.perf2_time = perf2_time
         self.quic_src = quic_src
         self.quic_des = quic_des
         self.quic_time = quic_time
@@ -436,6 +508,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         print(f"[func begin] - sn_Emulation_Start_Thread")
         ping_threads = []
         perf_threads = []
+        perf2_threads = []
         quic_threads = []
         led_threads = []
         timeptr = 2  # current emulating time
@@ -521,6 +594,25 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                           self.remote_ssh))
                                 perf_thread.start()
                                 perf_threads.append(perf_thread)
+                    if timeptr in self.perf2_time:
+                        if timeptr in self.perf2_time:
+                            index = [
+                                i for i, val in enumerate(self.perf2_time)
+                                if val == timeptr
+                            ]
+                            for index_num in index:
+                                perf2_thread = threading.Thread(
+                                    target=sn_perf2,
+                                    args=(self.perf2_src[index_num],
+                                          self.perf2_des[index_num],
+                                          self.perf2_time[index_num],
+                                          self.constellation_size,
+                                          self.container_id_list,
+                                          self.file_path,
+                                          self.configuration_file_path,
+                                          self.remote_ssh))
+                                perf2_thread.start()
+                                perf2_threads.append(perf2_thread)
                     # TODO add quic time
                     if timeptr in self.quic_time:
                         if timeptr in self.quic_time:
@@ -559,7 +651,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                       self.configuration_file_path,
                                       self.remote_ssh))
                                 led_thread.start()
-                                led_threads.append(quic_thread)
+                                led_threads.append(led_thread)
 
                     if timeptr in self.route_time:
                         index = [
@@ -695,6 +787,25 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                       self.remote_ssh))
                             perf_thread.start()
                             perf_threads.append(perf_thread)
+                if timeptr in self.perf2_time:
+                    if timeptr in self.perf2_time:
+                        index = [
+                            i for i, val in enumerate(self.perf2_time)
+                            if val == timeptr
+                        ]
+                        for index_num in index:
+                            perf2_thread = threading.Thread(
+                                target=sn_perf2,
+                                args=(self.perf2_src[index_num],
+                                      self.perf2_des[index_num],
+                                      self.perf2_time[index_num],
+                                      self.constellation_size,
+                                      self.container_id_list,
+                                      self.file_path,
+                                      self.configuration_file_path,
+                                      self.remote_ssh))
+                            perf2_thread.start()
+                            perf2_threads.append(perf2_thread)
                 # TODO add quic time
                 if timeptr in self.quic_time:
                     if timeptr in self.quic_time:
@@ -715,6 +826,25 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                   self.remote_ssh))
                             quic_thread.start()
                             quic_threads.append(quic_thread)
+                if timeptr in self.led_time:
+                    if timeptr in self.led_time:
+                        index = [
+                            i for i, val in enumerate(self.led_time)
+                            if val == timeptr
+                        ]
+                        for index_num in index:
+                            # TODO quic thread
+                            led_thread = threading.Thread(
+                            target=sn_ledbat,
+                            args=(self.led_src[index_num],
+                                  self.led_des[index_num],
+                                  self.led_time[index_num],
+                                  self.constellation_size,
+                                  self.container_id_list, self.file_path,
+                                  self.configuration_file_path,
+                                  self.remote_ssh))
+                            led_thread.start()
+                            led_threads.append(led_thread)
                 if timeptr in self.route_time:
                     index = [
                         i for i, val in enumerate(self.route_time)
@@ -837,7 +967,6 @@ def sn_sr(src, des, target, container_id_list, remote_ssh):
         "docker exec -d " + str(container_id_list[src - 1]) +
         " ip route add " + str(des_IP[0][:-3]) + "0/24 dev B%d-eth%d via " %
         (src, target) + target_IP[0])
-
     print("docker exec -d " + str(container_id_list[src - 1]) +
           " ip route add " + str(des_IP[0][:-3]) + "0/24 dev B%d-eth%d via " %
           (src, target) + target_IP[0])
@@ -872,6 +1001,7 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
 
 def sn_perf(src, des, time_index, constellation_size, container_id_list,
             file_path, configuration_file_path, remote_ssh):
+    # congestion control: cubic
     if des <= constellation_size:
         ifconfig_output = sn_remote_cmd(
             remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
@@ -889,13 +1019,44 @@ def sn_perf(src, des, time_index, constellation_size, container_id_list,
     sn_remote_cmd(
         remote_ssh,
         "docker exec -id " + str(container_id_list[des - 1]) + " iperf3 -s ")
-    print("iperf server success")
+    print(f"[{src}, {des} ] iperf server success")
     perf_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " iperf3 -c " + str(des_IP[0][:-1]) + " -t 5 ")
-    print("iperf client success")
+        " iperf3 -C cubic -c " + str(des_IP[0][:-1]) + " -t 5 ")
+    print(f"[{src}, {des} ] iperf client success")
     f = open(
-        configuration_file_path + "/" + file_path + "/perf-" + str(src) + "-" +
+        configuration_file_path + "/" + file_path + "/perfcubic-" + str(src) + "-" +
+        str(des) + "_" + str(time_index) + ".txt", "w")
+    f.writelines(perf_result)
+    f.close()
+
+def sn_perf2(src, des, time_index, constellation_size, container_id_list,
+            file_path, configuration_file_path, remote_ssh):
+    # congestion control: BBR
+    if des <= constellation_size:
+        ifconfig_output = sn_remote_cmd(
+            remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
+            " ifconfig | sed 's/[ \t].*//;/^\(eth0\|\)\(lo\|\)$/d'")
+        des_IP = sn_remote_cmd(
+            remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
+            " ifconfig " + ifconfig_output[0][:-1] +
+            "|awk -F '[ :]+' 'NR==2{print $4}'")
+    else:
+        des_IP = sn_remote_cmd(
+            remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
+            " ifconfig B" + str(des) +
+            "-default |awk -F '[ :]+' 'NR==2{print $4}'")
+
+    sn_remote_cmd(
+        remote_ssh,
+        "docker exec -id " + str(container_id_list[des - 1]) + " iperf3 -s ")
+    print(f"[{src}, {des} ] iperf server success")
+    perf_result = sn_remote_cmd(
+        remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
+        " iperf3 -C bbr -c " + str(des_IP[0][:-1]) + " -t 5 ")
+    print(f"[{src}, {des} ] iperf client success")
+    f = open(
+        configuration_file_path + "/" + file_path + "/perfbbr-" + str(src) + "-" +
         str(des) + "_" + str(time_index) + ".txt", "w")
     f.writelines(perf_result)
     f.close()
@@ -915,12 +1076,38 @@ def sn_quic(src, des, time_index, constellation_size, container_id_list,
         remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
         " ifconfig B" + str(des) +
         "-default |awk -F '[ :]+' 'NR==2{print $4}'")
-# TODO quic thread
     quic_path = "/home/aioquic"
     # sn_remote_cmd(
     #     remote_ssh,
     #     "docker exec -id " + str(container_id_list[des - 1]) + " python3 /aioquic/examples/http3_server.py --certificate /aioquic/tests/ssl_cert.pem --private-key /aioquic/tests/ssl_key.pem ")
+
     print(f"[sn_quic] src: {src} dec: {des}")
+
+    print(f"stop server")
+    res = sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[src-1]} ps aux")
+    for item in res:
+        print(f"container {container_id_list[src-1]} {item}")
+        if 'python' in item:
+            print(f"[be stopped] {container_id_list[src-1]} {item}")
+            pid = item.split()[1]
+            sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[src-1]} kill -9 {pid}")
+    res = sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[des-1]} ps aux")
+    for item in res:
+        print(f"container {container_id_list[des-1]} {item}")
+        if 'python' in item:
+            print(f"[be stopped] {container_id_list[des-1]} {item}")
+            pid = item.split()[1]
+            sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[des-1]} kill -9 {pid}")
+
+    try:
+        sn_remote_cmd(
+            remote_ssh,
+            f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
+        print(f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
+    except Exception as e:
+        print(f"{container_id_list[des - 1]} already start server")
+
+
     sn_remote_cmd(
         remote_ssh,
         f"docker exec -id {container_id_list[des - 1]} python {quic_path}/examples/http3_server.py --certificate {quic_path}/tests/ssl_cert.pem --private-key {quic_path}/tests/ssl_key.pem ")
@@ -957,11 +1144,34 @@ def sn_ledbat(src, des, time_index, constellation_size, container_id_list,
     # sn_remote_cmd(
     #     remote_ssh,
     #     "docker exec -id " + str(container_id_list[des - 1]) + " python3 /aioquic/examples/http3_server.py --certificate /aioquic/tests/ssl_cert.pem --private-key /aioquic/tests/ssl_key.pem ")
+
+
     print(f"[sn_led] src: {src} dec: {des}")
-    sn_remote_cmd(
-        remote_ssh,
-        f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
-    print(f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
+
+    print(f"stop server")
+    # stop pyledbat servers
+    res = sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[src-1]} ps aux")
+    for item in res:
+        print(f"container {container_id_list[src-1]} {item}")
+        if 'python' in item:
+            print(f"[be stopped] {container_id_list[src-1]} {item}")
+            pid = item.split()[1]
+            sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[src-1]} kill -9 {pid}")
+    res = sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[des-1]} ps aux")
+    for item in res:
+        print(f"container {container_id_list[des-1]} {item}")
+        if 'python' in item:
+            print(f"[be stopped] {container_id_list[des-1]} {item}")
+            pid = item.split()[1]
+            sn_remote_cmd(remote_ssh, f"docker exec -it {container_id_list[des-1]} kill -9 {pid}")
+
+    try:
+        sn_remote_cmd(
+            remote_ssh,
+            f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
+        print(f"docker exec -id {container_id_list[des - 1]} python {ledbat_path}/testapp.py")
+    except Exception as e:
+        print(f"{container_id_list[des - 1]} already start server")
     # quic_result = sn_remote_cmd(
     #     remote_ssh, "docker exec -id " + str(container_id_list[src - 1]) +
     #     " python /aioquic/examples/http3_client.py --ca-certs /aioquic/tests/pycacert.pem https://" + str(des_IP[0][:-1]) + ":4433/ ")
@@ -993,7 +1203,7 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
                          loss, sat_index, GS_index, remote_ssh):
     i = sat_index
     j = GS_index
-    print("[func begin] - sn_establish_new_GSL: sat_index {i}, GS_index {j}")
+    print(f"[func begin] - sn_establish_new_GSL: sat_index {i}, GS_index {j}")
     # IP address  (there is a link between i and j)
     delay = str(matrix[i - 1][j - 1])
     address_16_23 = (j - constellation_size) & 0xff
@@ -1085,6 +1295,7 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
         " ip addr | grep -B 2 9." + str(address_16_23) + "." +
         str(address_8_15) +
         ".60 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
+    print(f"ifconfig_output: {ifconfig_output}")
     target_interface = str(ifconfig_output[0]).split("@")[0]
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +

@@ -521,7 +521,12 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
         f" docker cp {Path} {container_idx}:/fisco")
     
     os.system("docker cp " + Path + " " + str(container_idx) + ":/fisco")
-    subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
+    try:
+        result = subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
+        print(f"[exec result {current+1}]" , result.stdout)
+    except Exception as e:
+        print("Error: start blockchain error", e)
+        exit(0)
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
@@ -583,6 +588,31 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     print("Initializing blockchain network")
     sleep(120)
     print("Blockchain initialized!")
+    
+    # check if every node is connected to the network
+    # 在每个container中，不断的查询 tail fisco/node0/log/* | grep -i connected 
+    # 直到查询到结果 info|2023-08-01 10:06:52.768452|[P2P][Service] heartBeat,connected count=0
+    # 同时结果中 count != 0
+    for current in range(total-fac_node_number, total): 
+        container_id_list[current]
+        flag = 0
+        while True:
+            with os.popen(f'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"') as f:
+                for line in f:
+                    if 'count=' in line:
+                        count = int(line.split('=')[-1])
+                        if count == 0:
+                            subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/stop_all.sh"])
+                            subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/start_all.sh"])
+                            flag = 1
+                        else:
+                            flag = 1
+                if flag == 1:
+                    break
+            
+
+                    
+
 
 def sn_damage_link(sat_index, container_id_list):
 
@@ -786,7 +816,6 @@ if __name__ == '__main__':
             GS_num = int(sys.argv[2])
             path = sys.argv[3]
             container_id_list = sn_get_container_info()
-            print(container_id_list)
             sn_copy_run_blockchain_to_each_gs(container_id_list, GS_num, path)
     elif len(sys.argv) == 2:
         path = sys.argv[1]

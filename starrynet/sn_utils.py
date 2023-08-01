@@ -425,31 +425,6 @@ class sn_Blockchain_Init_Thread(threading.Thread):
                 self.remote_ssh, PYTHON_PATH + " " + self.file_path +
                 "/sn_orchestrater.py" + " " +
                 str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
-
-        
-
-        # with os.popen("docker ps") as f:
-        #     all_container_info = f.readlines()
-        #     n_container = len(all_container_info)
-        # container_id_list = []
-        # for container_idx in range(1, n_container + 1):
-        #     container_id_list.append(all_container_info[container_idx-1].split()[0])
-        # print()
-        # for container_idx in range(1, n_container + 1):
-        #     if container_idx >= self.constellation_size:
-        #         print(f"container_idx: {container_idx}")
-        #         container_id_list.append(all_container_info[container_idx-1].split()[0])
-        #         print(all_container_info[container_idx-1].split()[0])
-        #         target_IP = sn_remote_cmd(
-        #             self.remote_ssh, "docker exec -it " + str(container_id_list[container_idx-1]) +
-        #             " ifconfig")
-        #         print(f"target_IP: {target_IP}")
-        # with open('build/fisco/ipconf', 'w') as f:
-        #     for gs_idx in range(self.constellation_size+1, n_container):
-        #         f.write(f"9.{gs_idx}.{gs_idx}.10 agencyA 1\n")
-        #     f.close()
-        # sn_remote_cmd(
-        #     self.remote_ssh, "bash build_fisco.sh >> build_fisco.log")
         
 
 # A thread designed for emulation.

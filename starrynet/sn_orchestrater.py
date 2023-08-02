@@ -601,7 +601,7 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
                 for line in f:
                     if 'count=' in line:
                         count = int(line.split('=')[-1])
-                        if count == 0:
+                        if count <= 1:
                             subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/stop_all.sh"])
                             subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/start_all.sh"])
                             flag = 1

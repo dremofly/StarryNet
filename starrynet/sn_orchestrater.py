@@ -808,8 +808,54 @@ def sn_delay_change(link_x, link_y, delay, container_id_list,
         print(f"[after] delay interface 1: {interface1}")
     except Exception as e:
         print("Error: interface 1 ", e)
-    
 
+def sn_copy_contract_address(container_idx, contract_address):
+    """
+    将contract address发给每个clients
+    """
+    print(f"register_contract_address {container_idx}, {contract_address}")
+    write_cmd = f'docker exec {container_idx} bash -c "echo {contract_address} > /fisco-client/console/conf/contract_address.txt"'
+    os.system(write_cmd)
+    
+def sn_deploy_contract(container_id_list, sat_number) -> str:
+    """
+    Desc: 部署一个名为SimpleBank的合约，返回值为合约的地址
+    """
+    print(f"[func begin] - sn_deploy_contract {container_id_list}, {sat_number}")
+
+    container_idx = container_id_list[0]
+
+    # deployContractCmd = f"docker exec {container_idx} bash fisco-client/console/console.sh deploy SimpleBank"
+    deployContractCmd = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'SimpleBank']
+    # res = sn_remote_cmd(sn.remote_ssh, deployContractCmd)
+    # res = os.system(deployContractCmd)
+    res = subprocess.run(deployContractCmd, capture_output=True, text=True)
+
+    print(f"deploy contract: {res.stdout}")
+
+    print(res.stdout.split()[5])
+    try:
+        # contract_address = res.stdout[1].split(':')[1].strip()
+        contract_address = res.stdout.split()[5]
+    except Exception as e:
+        print(f"ERROR of contract_address {e}")
+    
+    copy_threads = []
+    for current in range(0, sat_number):
+        # print(f"start threads {current}")
+        # sn_copy_contract_address(container_id_list[current], contract_address)
+        copy_thread = threading.Thread(
+            target=sn_copy_contract_address,
+            args=(container_id_list[current], contract_address)
+        )
+        copy_threads.append(copy_thread)
+    for copy_thread in copy_threads:
+        copy_thread.start()
+    for copy_thread in copy_threads:
+        copy_thread.join()
+
+    
+    return contract_address
 
 if __name__ == '__main__':
     print(f"==== Start sn_orchestrater ==== {len(sys.argv)}.")
@@ -855,6 +901,8 @@ if __name__ == '__main__':
             path = sys.argv[3]
             container_id_list = sn_get_container_info()
             sn_copy_run_blockchain_to_each_gs(container_id_list, GS_num, path)
+            sn_deploy_contract(container_id_list, len(container_id_list)-GS_num)
+
     elif len(sys.argv) == 2:
         path = sys.argv[1]
         random_list = numpy.loadtxt(path + "/damage_list.txt")

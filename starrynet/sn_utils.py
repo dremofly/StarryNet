@@ -411,8 +411,6 @@ class sn_Blockchain_Init_Thread(threading.Thread):
             self.file_path + "/build_chain.sh")
 
         print('Initialize Blockchain network')
-        pwd = sn_remote_cmd(self.remote_ssh, "pwd")
-        print(f"remote pwd: {pwd}, fac_num {self.fac_num}")
         try:
             sn_remote_cmd(
                 self.remote_ssh, PYTHON_PATH + " " + self.file_path +

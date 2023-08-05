@@ -31,6 +31,7 @@ RUN apt install -y default-jdk
 RUN tar -xzvf console.tar.gz
 COPY change_toml.py /fisco-client/console/conf/change_toml.py
 COPY SimpleBank.sol /fisco-client/console/contracts/solidity/SimpleBank.sol
+COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 
 WORKDIR /

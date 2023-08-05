@@ -23,8 +23,17 @@ RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 a
 COPY ./pyledbat /home/pyledbat
 
 WORKDIR /
+RUN mkdir /fisco-client
 
+WORKDIR /fisco-client
+COPY console.tar.gz /fisco-client
+RUN apt install -y default-jdk
+RUN tar -xzvf console.tar.gz
+COPY change_toml.py /fisco-client/console/conf/change_toml.py
+COPY SimpleBank.sol /fisco-client/console/contracts/solidity/SimpleBank.sol
+RUN python -m pip install toml
 
+WORKDIR /
 
 EXPOSE 4433 4433
 

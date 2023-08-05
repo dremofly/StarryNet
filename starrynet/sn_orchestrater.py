@@ -506,6 +506,9 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
     try:
         result2 = subprocess.run(["docker", "exec", str(container_idx), "birdc", "show", "protocol"], capture_output=True, text=True) # 尝试使用subprocess代替os.system
         print(f"[exec result2 {current+1}] ", result2.stdout)
+        if "OSPF" not in result2.stdout:
+            print("[ERROR] - cn_copy_run_conf: there is not configuration file")
+            
     except Exception as e:
         print("Error: show protocol error ", e)
               
@@ -527,6 +530,25 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
     except Exception as e:
         print("Error: start blockchain error", e)
         exit(0)
+
+def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
+    print("[" + str(current + 1) + "/" + str(total) + "]" +
+        f" docker cp {Path} {container_idx}:/fisco-client/console/conf")
+
+
+    # copy证书
+    copySDKcrt = f"docker cp {Path}/sdk.crt {container_idx}:/fisco-client/console/conf/sdk.crt"
+    copySDKkey = f"docker cp {Path}/sdk.key {container_idx}:/fisco-client/console/conf/sdk.key"
+    copyCa = f"docker cp {Path}/ca.crt {container_idx}:/fisco-client/console/conf/ca.crt"
+    os.system(copySDKcrt)
+    os.system(copySDKkey)
+    os.system(copyCa)
+
+    # copy config.toml
+    # genConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config-example.toml /fisco-client/console/conf/config.toml"
+    genConfig = f"docker exec -d {container_idx} python /fisco-client/console/conf/change_toml.py {caNum} {total}"
+    os.system(genConfig)
+    
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
@@ -558,8 +580,8 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     )
     
     total = len(container_id_list)
-    # 生成配置文件
-    print(f"total: {total}")
+    # 生成配置文件: 具体步骤参考 https://fisco-bcos-documentation.readthedocs.io/zh_CN/latest/docs/tutorial/multihost.html
+    print(f"total: {total} fac_node_number: {fac_node_number}")
     
     with open(os.path.join(path, 'ipconf'), 'w') as f:
         for gs_idx in range(total-fac_node_number, total):
@@ -572,14 +594,25 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     print(f"Generate FISCO conf {conf_fisco.stdout}")
 
     copy_threads = []
-    for current in range(total-fac_node_number, total):
+    # for current in range(total-fac_node_number, total):
+    for current in range(0, total):
         print("sn_copy_blockchain_conf")
-        idx = current + 1
-        copy_thread = threading.Thread(
-            # TODO: 添加fisco的配置
-            target=sn_copy_blockchain_conf,
-            args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
-        )
+        if current >= total-fac_node_number:
+            # blockchain node
+            idx = current + 1
+            copy_thread = threading.Thread(
+                target=sn_copy_blockchain_conf,
+                args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+            )
+        else:
+            # client (console)
+            caNum = total-fac_node_number + 1
+            caPath = f"~/nodes/9.{caNum}.{caNum}.10/sdk"
+            print(f"caPath: {caPath}")
+            copy_thread = threading.Thread(
+                target=sn_copy_client_conf,
+                args=(container_id_list[current], path, caPath, current, total, caNum)
+            )
         copy_threads.append(copy_thread)
     for copy_thread in copy_threads:
         copy_thread.start()
@@ -589,19 +622,19 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     sleep(120)
     print("Blockchain initialized!")
     
-    # check if every node is connected to the network
+    # check if every blockchain node is connected to the network
     # 在每个container中，不断的查询 tail fisco/node0/log/* | grep -i connected 
     # 直到查询到结果 info|2023-08-01 10:06:52.768452|[P2P][Service] heartBeat,connected count=0
     # 同时结果中 count != 0
     for current in range(total-fac_node_number, total): 
-        container_id_list[current]
+        # container_id_list[current]
         flag = 0
         while True:
             with os.popen(f'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"') as f:
                 for line in f:
                     if 'count=' in line:
                         count = int(line.split('=')[-1])
-                        if count <= 1:
+                        if count <= 2:
                             subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/stop_all.sh"])
                             subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/start_all.sh"])
                             flag = 1
@@ -609,6 +642,11 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
                             flag = 1
                 if flag == 1:
                     break
+    
+    # 配置clients
+    # for current in range(0, total-fac_node_number):
+        
+
             
 
                     

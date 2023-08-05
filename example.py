@@ -8,6 +8,7 @@ author: Zeqi Lai (zeqilai@tsinghua.edu.cn) and Yangtao Deng (dengyt21@mails.tsin
 from starrynet.sn_observer import *
 from starrynet.sn_orchestrater import *
 from starrynet.sn_synchronizer import *
+import pandas as pd
 
 if __name__ == "__main__":
     # Starlink 5*5: 25 satellite nodes, 2 ground stations.
@@ -19,6 +20,8 @@ if __name__ == "__main__":
                    ]  # latitude and longitude of frankfurt and  Austria
     configuration_file_path = "./config.json.503"
     hello_interval = 1  # hello_interval(s) in OSPF. 1-200 are supported.
+
+    df = pd.read_csv('perf2_data.csv') # test cases
 
     print('Start StarryNet.')
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
@@ -75,6 +78,38 @@ if __name__ == "__main__":
     #     for j in range(0, 26):
     #         sn.check_routing_table(j+1, i)
 
+    # read operations from file and add them to the queue
+    for index, row in df.iterrows():
+        # print(row)
+        if row['type'] == 'ping':
+            time_index = row['time']
+            node_index1 = row['src']
+            node_index2 = row['des']
+            sn.set_ping(node_index1, node_index2, time_index)
+        elif row['type'] == 'perf':
+            time_index = row['time']
+            node_index1 = row['src']
+            node_index2 = row['des']
+            sn.set_perf(node_index1, node_index2, time_index)
+        elif row['type'] == 'led':
+            time_index = row['time']
+            node_index1 = row['src']
+            node_index2 = row['des']
+            sn.set_led(node_index1, node_index2, time_index)
+        elif row['type'] == 'quic':
+            time_index = row['time']
+            node_index1 = row['src']
+            node_index2 = row['des']
+            sn.set_quic(node_index1, node_index2, time_index)
+        elif row['type'] == 'perf2':
+            time_index = row['time']
+            node_index1 = row['src']
+            node_index2 = row['des']
+            sn.set_perf2(node_index1, node_index2, time_index)
+        
+
+
+
     sat = 1
     des = 27
     next_hop_sat = 2
@@ -87,14 +122,22 @@ if __name__ == "__main__":
     # time_index = 3
     # # ping msg of two nodes at a certain time. The output file will be written at the working directory.
     # sn.set_ping(node_index1, node_index2, time_index)
-    count = 6
-    for i in range(1, 80, 15):
-        for ni in range(1, 3):
-            node_index1 = ni
-            node_index2 = ni + count
-            time_index = i
-            sn.set_ping(node_index1, node_index2, time_index)
-        count+=1
+    # count = 6
+    # for i in range(1, 80, 15):
+    #     for ni in range(1, 3):
+    #         node_index1 = ni
+    #         node_index2 = ni + count
+    #         time_index = i
+    #         sn.set_ping(node_index1, node_index2, time_index)
+    #     count+=1
+    
+    # count = 6
+    # for i in range(5, 80, 15):
+    #     for ni in range(10, 13):
+    #         node_index1 = ni
+    #         node_index2 = ni + count
+    #         time_index = i
+    #         sn.set_perf(node_index1, node_index2, time_index)
 
     # perf example
     # node_index1 = 13

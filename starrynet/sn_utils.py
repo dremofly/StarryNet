@@ -412,13 +412,13 @@ class sn_Blockchain_Init_Thread(threading.Thread):
 
         print('Initialize Blockchain network')
         pwd = sn_remote_cmd(self.remote_ssh, "pwd")
-        print(f"remote pwd: {pwd}")
+        print(f"remote pwd: {pwd}, fac_num {self.fac_num}")
         try:
             sn_remote_cmd(
                 self.remote_ssh, PYTHON_PATH + " " + self.file_path +
                 "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
                 str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
-            print("Routing initialized!")
+            print("Blockchain initialized!")
         except Exception as e:
             print("[ERROR] - ", e)
             sn_remote_cmd(

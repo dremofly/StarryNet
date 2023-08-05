@@ -313,6 +313,8 @@ class Observer():
 
     def compute_conf(self, sat_node_number, interval, num1, num2, ID, Q,
                      num_backbone, matrix):
+                     
+        print(f"compute_conf {sat_node_number}")
         Q.append(
             "log \"/var/log/bird.log\" { debug, trace, info, remote, warning, error, auth, fatal, bug };"
         )
@@ -460,6 +462,7 @@ class Observer():
         matrix = sn_get_param(path)
         num_backbone = self.orbit_number * self.sat_number + len(
             self.GS_lat_long)
+        print(f"generate_conf: {num_backbone}, {self.AS}")
         error = True
         for i in range(len(self.AS)):
             if len(self.AS[i]) != 1:

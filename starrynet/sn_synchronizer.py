@@ -154,7 +154,8 @@ class StarryNet():
     
     def run_blockchain_nodes(self):
         """
-        在ground station中运行
+        在ground station中运行nodes，
+        TODO 在satellite中运行clients
         """
         blockchain_thread = sn_Blockchain_Init_Thread(
             self.remote_ssh, self.remote_ftp, self.orbit_number,

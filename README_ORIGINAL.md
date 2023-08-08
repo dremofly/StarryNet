@@ -3,9 +3,12 @@ download `console.tar.gz`
 curl -LO https://github.com/FISCO-BCOS/console/releases/download/v2.9.2/download_console.sh
 bash download_console.sh
 ```
-# StarryNet修改版
+# StarryNet
 
-[原版README](README_ORIGINAL.md)
+
+StarryNet for the emulation of satellite Internet constellations.
+
+## What is StarryNet?
 
 StarryNet helps you to emulate your customized constellation and ground stations with run-time routing for a given duration. With StarryNet, you can test availability/bandwidth/loss within nodes, check routing states of a node and even damage certain links.
 
@@ -34,11 +37,11 @@ Then run `bash ./install.sh` to install CLI sn, which will also install packets 
 
 Finish *remote_machine_IP, remote_machine_username and remote_machine_password* in config.json to specify the remote machine for running the emulation. 
 
-2. Put `config.json`, `starrynet` and `example.py` (仿真控制脚本) at the same working directory.(不需要bird.conf，这个文件会在每个container中自动生成)
+Put `config.json`, `starrynet`, `bird.conf` and `example.py` at the same working directory.
 
 3. Start emulation:
 
-To specify your own constellation, copy `config.json` and fill in the fields in it according to your satellite emulation environment, including the constellation name, orbit number, satellite number per orbit, ground station number, ground user number connected to each ground station and so on. You are only allowed to change `Name`, `Altitude (km)`, `Cycle (s)`, `Inclination`, `Phase shift`, `# of orbit`, `# of satellites`, `Duration(s)`, `update_time (s)`, `satellite link bandwidth  ("X" Gbps)`, `sat-ground bandwidth ("X" Gbps)`, `satellite link loss ( 'X'% )`, `sat-ground loss ( 'X'% )`, `GS number`, `multi-machine('0' for no, '1' for yes)`, `antenna number`, `antenna_inclination_angle`, `remote_machine_IP`, `remote_machine_username`, `remote_machine_password` in `config.json`.
+To speficy your own  constellation, copy `config.json` and fill in the fields in it according to your satellite emulation environment, including the constellation name, orbit number, satellite number per orbit, ground station number, ground user number connected to each ground station and so on. You are only allowed to change `Name`, `Altitude (km)`, `Cycle (s)`, `Inclination`, `Phase shift`, `# of orbit`, `# of satellites`, `Duration(s)`, `update_time (s)`, `satellite link bandwidth  ("X" Gbps)`, `sat-ground bandwidth ("X" Gbps)`, `satellite link loss ( 'X'% )`, `sat-ground loss ( 'X'% )`, `GS number`, `multi-machine('0' for no, '1' for yes)`, `antenna number`, `antenna_inclination_angle`, `remote_machine_IP`, `remote_machine_username`, `remote_machine_password` in `config.json`.
 
 Then use the APIs in `example.py` to start your trails. Remember to change the configuration_path of your `config.json`.
 
@@ -51,22 +54,7 @@ Then use the APIs in `example.py` to start your trails. Remember to change the c
 > GS_lat_long=[[50.110924,8.682127],[46.635700,14.311817]] # frankfurt and Austria
 
 6. `ConfigurationFilePath` is where you put your config.json file, specified in `example.py`.
-   > ConfigurationFilePath = "./config.json" (在原本的代码中，configuration path修改也没有用，这是一个bug)
-
-
-运行区块链可以使用`blockchain_example.py`的脚本
-
-初始化区块链网络
-```shell
-python blockchain_example.py init
-```
-
-运行区块链网络中的测试
-```shell
-python blockchain_example.py 
-```
-
-
+   > ConfigurationFilePath = "./config.json"
 
 ## What are the APIs?
 

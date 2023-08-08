@@ -1026,7 +1026,7 @@ def sn_deposit(src, des, time_index, container_id_list,
     getAccountCmd = f'docker exec -it {container_id_list[des-1]} bash fisco-client/console/get_account.sh'
     
     
-    accountRes = subprocess.run(['docker', 'exec', '-it', '5b4bf375c76e', 'bash', 'fisco-client/console/get_account.sh'], capture_output=True, text=True)
+    accountRes = subprocess.run(['docker', 'exec', '-it', str(container_id_list[des-1]), 'bash', 'fisco-client/console/get_account.sh'], capture_output=True, text=True)
     # accountRes = os.system(getAccountCmd)
     print(accountRes.stdout)
     match = re.search(r"Account Address\s*:\s*(0x[a-fA-F0-9]+)", accountRes.stdout)
@@ -1043,7 +1043,7 @@ def sn_deposit(src, des, time_index, container_id_list,
     print(f"sn_deposit {src} {time_index} {cmd} account")
     deposit_res = sn_remote_cmd(remote_ssh, cmd)
     f = open(
-        configuration_file_path + "/" + file_path + "/deposit-" + str(src) + "_" + str(time_index) + ".txt", 'w' 
+        configuration_file_path + "/" + file_path + "/transfer-" + str(src) + "_" + str(time_index) + ".txt", 'w' 
     )
     f.writelines(deposit_res)
     f.close()

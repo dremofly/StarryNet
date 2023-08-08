@@ -8,6 +8,8 @@ from time import sleep
 import time
 import numpy
 import random
+import re
+import subprocess
 """
 Starrynet utils that are used in sn_synchronizer
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn)
@@ -435,7 +437,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
                  sr_time, damage_ratio, damage_time, damage_list,
                  recovery_time, route_src, route_time, duration,
                  utility_checking_time, perf_src, perf_des, perf_time, perf2_src, perf2_des, perf2_time, 
-                 quic_src, quic_des, quic_time, led_src, led_des, led_time):
+                 quic_src, quic_des, quic_time, led_src, led_des, led_time, deposit_src, deposit_des, deposit_time):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
         self.remote_ftp = remote_ftp
@@ -466,6 +468,9 @@ class sn_Emulation_Start_Thread(threading.Thread):
         self.sr_des = sr_des
         self.sr_target = sr_target
         self.sr_time = sr_time
+        self.deposit_src = deposit_src
+        self.deposit_des = deposit_des
+        self.deposit_time = deposit_time
         self.damage_ratio = damage_ratio
         self.damage_time = damage_time
         self.damage_list = damage_list
@@ -484,6 +489,7 @@ class sn_Emulation_Start_Thread(threading.Thread):
         perf2_threads = []
         quic_threads = []
         led_threads = []
+        deposit_threads = []
         timeptr = 2  # current emulating time
         topo_change_file_path = self.configuration_file_path + "/" + self.file_path + '/Topo_leo_change.txt'
         fi = open(topo_change_file_path, 'r')
@@ -567,6 +573,26 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                           self.remote_ssh))
                                 perf_thread.start()
                                 perf_threads.append(perf_thread)
+                    if timeptr in self.deposit_time:
+                        if timeptr in self.deposit_time:
+                            index = [
+                                i for i, val in enumerate(self.deposit_time)
+                                if val == timeptr
+                            ]
+                            for index_num in index:
+                                deposit_thread = threading.Thread(
+                                    target=sn_deposit,
+                                    args=(self.deposit_src[index_num],
+                                          self.deposit_des[index_num],
+                                          self.deposit_time[index_num],
+                                          self.container_id_list,
+                                          self.file_path,
+                                          self.configuration_file_path,
+                                          self.remote_ssh
+                                          ))
+                                deposit_thread.start()
+                                deposit_threads.append(deposit_thread)
+
                     if timeptr in self.perf2_time:
                         if timeptr in self.perf2_time:
                             index = [
@@ -779,6 +805,25 @@ class sn_Emulation_Start_Thread(threading.Thread):
                                       self.remote_ssh))
                             perf2_thread.start()
                             perf2_threads.append(perf2_thread)
+                if timeptr in self.deposit_time:
+                    if timeptr in self.deposit_time:
+                        index = [
+                            i for i, val in enumerate(self.deposit_time)
+                            if val == timeptr
+                        ]
+                        for index_num in index:
+                            deposit_thread = threading.Thread(
+                                target=sn_deposit,
+                                args=(self.deposit_src[index_num],
+                                      self.deposit_des[index_num],
+                                      self.deposit_time[index_num],
+                                      self.container_id_list,
+                                      self.file_path,
+                                      self.configuration_file_path,
+                                      self.remote_ssh
+                                      ))
+                            deposit_thread.start()
+                            deposit_threads.append(deposit_thread)
                 # TODO add quic time
                 if timeptr in self.quic_time:
                     if timeptr in self.quic_time:
@@ -840,6 +885,8 @@ class sn_Emulation_Start_Thread(threading.Thread):
             quic_thread.join()
         for led_thread in led_threads:
             led_thread.join()
+        for deposit_thread in deposit_threads:
+            deposit_thread.join()
 
 
 def sn_check_utility(time_index, remote_ssh, file_path):
@@ -971,6 +1018,35 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
     f.writelines(ping_result)
     f.close()
 
+def sn_deposit(src, des, time_index, container_id_list,
+                file_path, configuration_file_path, remote_ssh):
+    """
+    调用SimpleBank合约中的deposit操作
+    """
+    getAccountCmd = f'docker exec -it {container_id_list[des-1]} bash fisco-client/console/get_account.sh'
+    
+    
+    accountRes = subprocess.run(['docker', 'exec', '-it', '5b4bf375c76e', 'bash', 'fisco-client/console/get_account.sh'], capture_output=True, text=True)
+    # accountRes = os.system(getAccountCmd)
+    print(accountRes.stdout)
+    match = re.search(r"Account Address\s*:\s*(0x[a-fA-F0-9]+)", accountRes.stdout)
+    if match:
+        account = match.group(1)
+        print(account)
+    else:
+        print("Address not found.")
+        exit(0)
+        # print(account) 
+
+    # '138d8392a9b'
+    cmd = f'docker exec {container_id_list[src-1]} bash call_contract.sh {account}'
+    print(f"sn_deposit {src} {time_index} {cmd} account")
+    deposit_res = sn_remote_cmd(remote_ssh, cmd)
+    f = open(
+        configuration_file_path + "/" + file_path + "/deposit-" + str(src) + "_" + str(time_index) + ".txt", 'w' 
+    )
+    f.writelines(deposit_res)
+    f.close()
 
 def sn_perf(src, des, time_index, constellation_size, container_id_list,
             file_path, configuration_file_path, remote_ssh):
@@ -1208,7 +1284,7 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
         "docker exec -it " + str(container_id_list[i - 1]) +
         " ip addr | grep -B 2 9." + str(address_16_23) + "." +
         str(address_8_15) +
-        ".50 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank]'")
+        ".50 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
     print(f"ifconfig_output {ifconfig_output}")
 
     target_interface = str(ifconfig_output[0]).split("@")[0]
@@ -1255,7 +1331,8 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
     print('[Add current node:]' + 'docker network connect ' + GSL_name + " " +
           str(container_id_list[i - 1]) + " --ip 10." + str(address_16_23) +
           "." + str(address_8_15) + ".50")
-    sn_remote_cmd(
+    # TODO 这句话可能执行失败
+    connect_gs = sn_remote_cmd(
         remote_ssh, 'docker network connect ' + GSL_name + " " +
         str(container_id_list[j - 1]) + " --ip 9." + str(address_16_23) + "." +
         str(address_8_15) + ".60")
@@ -1263,13 +1340,45 @@ def sn_establish_new_GSL(container_id_list, matrix, constellation_size, bw,
         'docker network connect ' + GSL_name + " " +
         str(container_id_list[j - 1]) + " --ip 9." + str(address_16_23) + "." +
         str(address_8_15) + ".60")
+    try:
+        connect_gs = connect_gs[0]
+        print(f"connect_gs: {connect_gs}")
+        if 'Error' in connect_gs:
+            match = re.search(r'Gw: (\b(?:\d{1,3}\.){3}\d{1,3}\b)', connect_gs)
+            if match:
+                gw_value = match.group(1)
+                print(f'The value of Gw is: {gw_value}')
+
+                del_res = sn_remote_cmd(remote_ssh, f'docker exec -it {container_id_list[j-1]} ip route del 9.{address_16_23}.{address_8_15}.0/24 via {gw_value}')
+                print(f"del_res: {del_res}")
+                connect_gs = sn_remote_cmd(
+                    remote_ssh, 'docker network connect ' + GSL_name + " " +
+                    str(container_id_list[j - 1]) + " --ip 9." + str(address_16_23) + "." +
+                    str(address_8_15) + ".60")
+                print(f"connect_gs: {connect_gs}")
+            else:
+                print('Gw value not found') 
+                exit(1)
+    except Exception as e:
+        print(connect_gs)
+
     ifconfig_output = sn_remote_cmd(
         remote_ssh, "docker exec -it " + str(container_id_list[j - 1]) +
         " ip addr | grep -B 2 9." + str(address_16_23) + "." +
         str(address_8_15) +
         ".60 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
+    print(
+        "docker exec -it " + str(container_id_list[j - 1]) +
+        " ip addr | grep -B 2 9." + str(address_16_23) + "." +
+        str(address_8_15) +
+        ".60 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
+
     print(f"ifconfig_output: {ifconfig_output}")
-    target_interface = str(ifconfig_output[0]).split("@")[0]
+    try:
+        target_interface = str(ifconfig_output[0]).split("@")[0]
+    except Exception as e:
+        print(f'ESTABLISH_NEW_GSL ERROR: {ifconfig_output} {e}')
+        exit(1)
     sn_remote_cmd(
         remote_ssh, "docker exec -d " + str(container_id_list[j - 1]) +
         " ip link set dev " + target_interface + " down")

@@ -99,6 +99,9 @@ class StarryNet():
         self.sr_des = []
         self.sr_target = []
         self.sr_time = []
+        self.deposit_src = []
+        self.deposit_des = []
+        self.deposit_time = []
         self.damage_ratio = []
         self.damage_time = []
         self.damage_list = []
@@ -257,6 +260,11 @@ class StarryNet():
         self.led_des.append(sat2_index)
         self.led_time.append(time_index)
 
+    def set_deposit(self, sat1_index, sat2_index, time_index):
+        self.deposit_src.append(sat1_index)
+        self.deposit_des.append(sat2_index)
+        self.deposit_time.append(time_index)
+
     def start_emulation(self):
         # Start emulation in a new thread.
         sn_thread = sn_Emulation_Start_Thread(
@@ -269,7 +277,7 @@ class StarryNet():
             self.sr_time, self.damage_ratio, self.damage_time,
             self.damage_list, self.recovery_time, self.route_src,
             self.route_time, self.duration, self.utility_checking_time,
-            self.perf_src, self.perf_des, self.perf_time, self.perf2_src, self.perf2_des, self.perf2_time, self.quic_src, self.quic_des, self.quic_time, self.led_src, self.led_des, self.led_time)
+            self.perf_src, self.perf_des, self.perf_time, self.perf2_src, self.perf2_des, self.perf2_time, self.quic_src, self.quic_des, self.quic_time, self.led_src, self.led_des, self.led_time, self.deposit_src, self.deposit_des, self.deposit_time)
         sn_thread.start()
         sn_thread.join()
 

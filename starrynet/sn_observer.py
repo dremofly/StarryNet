@@ -314,7 +314,6 @@ class Observer():
     def compute_conf(self, sat_node_number, interval, num1, num2, ID, Q,
                      num_backbone, matrix):
                      
-        print(f"compute_conf {sat_node_number}")
         Q.append(
             "log \"/var/log/bird.log\" { debug, trace, info, remote, warning, error, auth, fatal, bug };"
         )
@@ -434,6 +433,7 @@ class Observer():
         remote_ftp.put(self.configuration_file_path + "/" + filename, filename)
 
     def generate_conf(self, remote_ssh, remote_ftp):
+        # 目前只支持OSPF
         if self.intra_routing != "OSPF" and self.intra_routing != "ospf":
             return False
         if os.path.exists(self.configuration_file_path + "/" + self.file_path +
@@ -463,11 +463,15 @@ class Observer():
         num_backbone = self.orbit_number * self.sat_number + len(
             self.GS_lat_long)
         print(f"generate_conf: {num_backbone}, {self.AS}")
+        print(f"len(AS): {len(self.AS)}")
         error = True
         for i in range(len(self.AS)):
+            print(f"len(AS[{i}]): {len(self.AS[i])}")
             if len(self.AS[i]) != 1:
+                # AS[i]是有范围的，比如说[1,27]
                 for ID in range(self.AS[i][0], self.AS[i][1] + 1):
                     Q = []
+                    print(f"compute_conf for node {ID}")
                     error = self.compute_conf(
                         self.orbit_number * self.sat_number,
                         self.hello_interval, self.AS[i][0], self.AS[i][1], ID,

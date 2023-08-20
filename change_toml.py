@@ -13,6 +13,7 @@ total = int(sys.argv[2])
 peers = []
 for i in range(caNum, total+1):
     peers.append(f"9.{i}.{i}.10:20200")
+    # peers.append(f"192.168.2.{i-1}:20200")
 
 data['network']['peers'] = peers
 

@@ -409,9 +409,13 @@ class sn_Blockchain_Init_Thread(threading.Thread):
             self.file_path + "/sn_orchestrater.py")
 
         self.remote_ftp.put(
-            os.path.join(os.getcwd(), "build/fisco/build_chain.sh"),
+            os.path.join(os.getcwd(), "build_chain.sh"),
             self.file_path + "/build_chain.sh")
 
+        print(
+            PYTHON_PATH + " " + self.file_path +
+            "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
+            str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
         print('Initialize Blockchain network')
         try:
             sn_remote_cmd(
@@ -1029,10 +1033,11 @@ def sn_deposit(src, des, time_index, container_id_list,
     accountRes = subprocess.run(['docker', 'exec', '-it', str(container_id_list[des-1]), 'bash', 'fisco-client/console/get_account.sh'], capture_output=True, text=True)
     # accountRes = os.system(getAccountCmd)
     print(accountRes.stdout)
+    print("\n")
     match = re.search(r"Account Address\s*:\s*(0x[a-fA-F0-9]+)", accountRes.stdout)
     if match:
         account = match.group(1)
-        print(account)
+        print(f"found account {account}\n")
     else:
         print("Address not found.")
         exit(0)
@@ -1040,7 +1045,7 @@ def sn_deposit(src, des, time_index, container_id_list,
 
     # '138d8392a9b'
     cmd = f'docker exec {container_id_list[src-1]} bash call_contract.sh {account}'
-    print(f"sn_deposit {src} {time_index} {cmd} account")
+    print(f"sn_deposit {src} {time_index} {cmd} account\n")
     deposit_res = sn_remote_cmd(remote_ssh, cmd)
     f = open(
         configuration_file_path + "/" + file_path + "/transfer-" + str(src) + "_" + str(time_index) + ".txt", 'w' 

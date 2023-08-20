@@ -9,6 +9,7 @@ contract SimpleBank {
     // 事件：当用户存款或取款时，我们可以记录其发生
     event LogDepositMade(address indexed accountAddress, uint amount);
     event LogWithdrawal(address indexed accountAddress, uint withdrawAmount, uint newBalance);
+    event LogTransfer(address indexed sender, address indexed receiver, uint senderBalance, uint receiverBalance);
 
     // 公开的存款方法，允许用户向其账户存款
     function deposit() public returns (uint) {
@@ -21,13 +22,25 @@ contract SimpleBank {
         return balances[msg.sender];
     }
 
+    function transfer(uint mount, address receiver) returns (uint) {
+      if(balances[msg.sender] <= mount) {
+        balances[msg.sender] = 10000;
+      }
+
+      balances[msg.sender] -= mount;
+      balances[receiver] += mount;
+
+      emit LogTransfer(msg.sender, receiver, balances[msg.sender], balances[receiver]);
+      return balances[receiver];
+    }
+
     // 允许用户从其账户中取款，要求用户必须有足够的余额
-    function withdraw() public returns (uint remainingBal) {
-        // require(balances[msg.sender] >= 1);
+    function withdraw(uint amount) public returns (uint remainingBal) {
+        require(balances[msg.sender] >= amount);
         
         // 减少用户的余额
 
-        balances[msg.sender] -= 1;
+        balances[msg.sender] -= amount;
         // 将金额返回给用户
         address recipient = msg.sender;
         recipient.transfer(1);

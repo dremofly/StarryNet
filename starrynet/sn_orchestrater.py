@@ -4,6 +4,7 @@ import sys
 from time import sleep
 import numpy
 import subprocess
+import select
 """
 Used in the remote machine for link updating, initializing links, damaging and recovering links and other functionalities。
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn) 
@@ -26,8 +27,8 @@ def sn_get_down_satellite(current_sat_id, current_orbit_id, sat_num):
 
 def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
                      orbit_num, sat_num, constellation_size, matrix, bw, loss):
-    current_id = current_orbit_id * sat_num + current_sat_id
-    isl_idx = current_id * 2 + 1
+    current_id = current_orbit_id * sat_num + current_sat_id # 当前的容器的序号
+    isl_idx = current_id * 2 + 1 #  
     # Establish intra-orbit ISLs
     # (Down):
     [down_sat_id,
@@ -36,23 +37,23 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
     print()
     print(f"[func begin {isl_idx}/{constellation_size*2}] - sn_ISL_establish") 
     print("[" + str(isl_idx) + "/" + str(constellation_size * 2) +
-          "] Establish intra-orbit ISL from: (" + str(current_sat_id) + "," +
+          "] Establish intra-orbit ISL from: (s " + str(current_sat_id) + ", o " +
           str(current_orbit_id) + ") to (" + str(down_sat_id) + "," +
           str(down_orbit_id) + ")")
     ISL_name = "Le_" + str(current_sat_id) + "-" + str(current_orbit_id) + \
         "_" + str(down_sat_id) + "-" + str(down_orbit_id)
-    address_16_23 = isl_idx >> 8
+    address_16_23 = isl_idx >> 8 # 
     address_8_15 = isl_idx & 0xff
     # Create internal network in docker.
     os.system('docker network create ' + ISL_name + " --subnet 10." +
               str(address_16_23) + "." + str(address_8_15) + ".0/24")
-    print('[Create ISL:]' + 'docker network create ' + ISL_name +
+    print(f'[Create ISL {current_id}:]' + 'docker network create ' + ISL_name +
           " --subnet 10." + str(address_16_23) + "." + str(address_8_15) +
           ".0/24")
     os.system('docker network connect ' + ISL_name + " " +
               str(container_id_list[current_orbit_id * sat_num +
                                     current_sat_id]) + " --ip 10." +
-              str(address_16_23) + "." + str(address_8_15) + ".40")
+              str(address_16_23) + "." + str(address_8_15) + ".40") # TODO 这里的current_orbit_id * sat_num+current_sat_id不就是current_id吗
     delay = matrix[current_orbit_id * sat_num +
                    current_sat_id][down_orbit_id * sat_num + down_sat_id]
     
@@ -64,6 +65,8 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
             " ip addr | grep -B 2 10." + str(address_16_23) + "." +
             str(address_8_15) +
             ".40 | head -n 1 | awk -F: '{ print $2 }' | tr -d '[:blank:]'")
+    
+    # 下面的current_orbit_id*sat_num+current_sat_id不就是current_id吗
     with os.popen(
             "docker exec -it " +
             str(container_id_list[current_orbit_id * sat_num +
@@ -219,7 +222,7 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
     # Create internal network in docker.
     os.system('docker network create ' + ISL_name + " --subnet 10." +
               str(address_16_23) + "." + str(address_8_15) + ".0/24")
-    print('[Create ISL:]' + 'docker network create ' + ISL_name +
+    print(f'[Create ISL {current_id}:]' + 'docker network create ' + ISL_name +
           " --subnet 10." + str(address_16_23) + "." + str(address_8_15) +
           ".0/24")
     os.system('docker network connect ' + ISL_name + " " +
@@ -524,6 +527,8 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
         f" docker cp {Path} {container_idx}:/fisco")
     
     os.system("docker cp " + Path + " " + str(container_idx) + ":/fisco")
+    sleep(1)
+    print(f"{container_idx} sn_copy_blockchain_conf", ["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
     try:
         result = subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
         print(f"[exec result {current+1}]" , result.stdout)
@@ -583,11 +588,14 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     # 生成配置文件: 具体步骤参考 https://fisco-bcos-documentation.readthedocs.io/zh_CN/latest/docs/tutorial/multihost.html
     print(f"total: {total} fac_node_number: {fac_node_number}")
     
+    
+    network_ip = "192.168.2."
     with open(os.path.join(path, 'ipconf'), 'w') as f:
         for gs_idx in range(total-fac_node_number, total):
             print(f"{total-fac_node_number} {gs_idx}")
             idx = gs_idx + 1
-            f.write(f"9.{idx}.{idx}.10 agencyA 1\n")
+            # f.write(f"9.{idx}.{idx}.10 agencyA 1\n")
+            f.write(f"{network_ip}{gs_idx} agencyA 1\n")
     
     print(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"])
     conf_fisco = subprocess.run(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"], capture_output=True, text=True)
@@ -602,12 +610,14 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
             idx = current + 1
             copy_thread = threading.Thread(
                 target=sn_copy_blockchain_conf,
-                args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+                # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+                args=(container_id_list[current], path, f"~/nodes/{network_ip}{current}", current, total) 
             )
         else:
             # client (console)
             caNum = total-fac_node_number + 1
-            caPath = f"~/nodes/9.{caNum}.{caNum}.10/sdk"
+            # caPath = f"~/nodes/9.{caNum}.{caNum}.10/sdk"
+            caPath = f"~/nodes/{network_ip}{caNum-1}/sdk"
             print(f"caPath: {caPath}")
             copy_thread = threading.Thread(
                 target=sn_copy_client_conf,
@@ -621,32 +631,58 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     print("Initializing blockchain network")
     sleep(120)
     print("Blockchain initialized!")
-    
+
+    # for current in range(total-fac_node_number, total):
+    #     idx = current + 1
+        
+    #     container_idx = container_id_list[current]
+    #     result = subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/stop_all.sh"])
+    #     result2 = subprocess.run(["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
+
     # check if every blockchain node is connected to the network
     # 在每个container中，不断的查询 tail fisco/node0/log/* | grep -i connected 
     # 直到查询到结果 info|2023-08-01 10:06:52.768452|[P2P][Service] heartBeat,connected count=0
     # 同时结果中 count != 0
-    for current in range(total-fac_node_number, total): 
-        # container_id_list[current]
-        flag = 0
-        while True:
-            with os.popen(f'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"') as f:
-                for line in f:
-                    if 'count=' in line:
-                        count = int(line.split('=')[-1])
-                        if count <= 2:
-                            subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/stop_all.sh"])
-                            subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/start_all.sh"])
-                            flag = 1
-                        else:
-                            flag = 1
-                if flag == 1:
-                    break
-    
-    # 配置clients
-    # for current in range(0, total-fac_node_number):
-        
+    # for current in range(total-fac_node_number, total): 
+    #     # container_id_list[current]
+    #     flag = 0
+    #     while True:
+    #         with os.popen(f'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"') as f:
+    #             print(f'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"')
+    #             for line in f:
+    #                 if 'count=' in line:
+    #                     count = int(line.split('=')[-1])
+    #                     if count <= 2:
+    #                         subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/stop_all.sh"])
+    #                         subprocess.run(["docker", "exec", str(container_id_list[current]), "bash", "/fisco/start_all.sh"])
+    #                         flag = 1
+    #                     else:
+    #                         flag = 1
+    #             if flag == 1:
+    #                 break
 
+    # 上面的代码该用subprocess.Popenf'docker exec {container_id_list[current]} /bin/bash -c "tail fisco/node0/log/* | grep -i connected"'
+    # for current in range(total-fac_node_number, total): 
+    #     cmd = f'docker exec {container_id_list[current]} /bin/bash -c "tail -f fisco/node0/log/* | grep -i connected"'
+    #     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #     poll_obj = select.poll()
+    #     poll_obj.register(process.stdout, select.POLLIN)
+
+    #     try:
+    #         while True:
+    #             poll_result = poll_obj.poll(0)
+    #             if poll_result:
+    #                 line = process.stdout.readline().decode('utf-8')
+    #                 print(line.strip())  # 打印输出
+    #                 if 'heartBeat,connected' in line.lower():
+    #                     print("Target string found!")
+    #                     process.terminate()  # 终止进程
+    #                     break
+    #     except KeyboardInterrupt:
+    #         print("keyboard interrupt")
+    #         process.terminate()
+
+        
             
 
                     

@@ -5,7 +5,7 @@ ARG GUIC_DIR=../aioquic
 RUN apt update
 
 WORKDIR /tmp
-RUN apt install -y wget
+RUN apt install -y wget unzip
 RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
 RUN tar xzf Python-3.10.0.tgz
 
@@ -13,6 +13,13 @@ WORKDIR /tmp/Python-3.10.0
 RUN ./configure --enable-optimizations
 RUN make altinstall
 RUN apt install -y libssl-dev
+
+# GRADLE
+WORKDIR /tmp
+COPY gradle-7.6.1-bin.zip /tmp/gradle-7.6.1-bin.zip
+RUN unzip -d /opt/gradle /tmp/gradle-7.6.1-bin.zip
+# RUN echo "export GRADLE_HOME=/opt/gradle/gradle-7.6.1" | tee -a /etc/profile.d/gradle.sh
+RUN echo "export PATH=/opt/gradle/gradle-7.6.1/bin:${PATH}" | tee -a /etc/profile.d/gradle.sh
 
 WORKDIR /home/
 COPY ./aioquic /home/aioquic

@@ -53,7 +53,6 @@ def run_orchestrater():
     """
 
 def sn_load_file(path, GS_lat_long):
-    # f = open("./config.json", "r", encoding='utf8')
     f = open(path, "r", encoding='utf8')
     table = json.load(f)
     data = {}

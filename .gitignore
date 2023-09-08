@@ -70,3 +70,14 @@ config.json
 /pyledbat
 console.tar.gz
 *key.txt
+relsharding-client*
+gradle-6.9.3*
+gradle-7.6.1*
+led_data.csv
+led.png
+perf_data.csv
+perf.png
+perf2_data.csv
+ping_data.csv
+ping_test.csv
+quic_data.csv

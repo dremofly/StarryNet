@@ -42,6 +42,12 @@ COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 
 WORKDIR /
+RUN mkdir /relsharding-client
+WORKDIR /relsharding-client
+COPY relsharding-clientv0.1.tar.gz /relsharding-client
+RUN tar -xzvf relsharding-clientv0.1.tar.gz
+
+WORKDIR /
 
 EXPOSE 4433 4433
 

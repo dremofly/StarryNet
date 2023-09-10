@@ -331,6 +331,17 @@ class sn_Link_Init_Thread(threading.Thread):
         self.remote_ftp.put(
             self.configuration_file_path + "/" + self.file_path +
             '/delay/1.txt', self.file_path + "/1.txt")
+        
+        print("file_path ", self.file_path)
+        # put keys
+        key_dir = os.path.join(os.getcwd(), "keys")
+        keys_files = os.listdir(key_dir)
+        for key_file in keys_files:
+            if 'key.txt' in key_file:
+                self.remote_ftp.put(
+                    os.path.join(key_dir, key_file),
+                    os.path.join(self.file_path, f"{key_file}"))
+
         print('Initializing links ...')
         sn_remote_cmd(
             self.remote_ssh, PYTHON_PATH + " " + self.file_path +

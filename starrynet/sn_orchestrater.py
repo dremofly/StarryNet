@@ -545,6 +545,7 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco-client/console/conf")
 
+    # 生成role文件
     relshardingPath = "/relsharding-client/relsharding-client/dist"
     roleStr = "client"
     if (current + 1 ) % 5 == 0:

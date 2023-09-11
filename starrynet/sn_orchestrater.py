@@ -5,6 +5,7 @@ from time import sleep
 import numpy
 import subprocess
 import select
+import re
 """
 Used in the remote machine for link updating, initializing links, damaging and recovering links and other functionalities。
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn) 
@@ -526,6 +527,10 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco")
     
+    # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/")
+    # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/dist")
+    os.system(f"docker cp {path}/")
+
     os.system("docker cp " + Path + " " + str(container_idx) + ":/fisco")
     sleep(1)
     print(f"{container_idx} sn_copy_blockchain_conf", ["docker", "exec", str(container_idx), "bash", "/fisco/start_all.sh"])
@@ -540,6 +545,12 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco-client/console/conf")
 
+    relshardingPath = "/relsharding-client/relsharding-client/dist"
+    roleStr = "client"
+    if (current + 1 ) % 5 == 0:
+        roleStr = "relayer"
+    genRoleCmd = f'docker exec -d {container_idx} bash -c "echo {roleStr} > {relshardingPath}/role.txt"'
+    os.system(genRoleCmd)
 
     # copy证书
     copySDKcrt = f"docker cp {Path}/sdk.crt {container_idx}:/fisco-client/console/conf/sdk.crt"
@@ -549,11 +560,22 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     os.system(copySDKkey)
     os.system(copyCa)
 
+    # copy证书到relsharding-client中
+    copySDKcrtRel = f"docker cp {Path}/sdk.crt {container_idx}:{relshardingPath}/conf/sdk.crt"
+    copySDKkeyRel = f"docker cp {Path}/sdk.key {container_idx}:{relshardingPath}/conf/sdk.key"
+    copyCaRel = f"docker cp {Path}/ca.crt {container_idx}:{relshardingPath}/conf/ca.crt"
+    os.system(copySDKcrtRel)
+    os.system(copySDKkeyRel)
+    os.system(copyCaRel)
+
     # copy config.toml
     # genConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config-example.toml /fisco-client/console/conf/config.toml"
     genConfig = f"docker exec -d {container_idx} python /fisco-client/console/conf/change_toml.py {caNum} {total}"
     os.system(genConfig)
-    
+
+    # copy config.toml to relsharding-client
+    copyConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config.json /relsharding-client/relsharding-client/dist/conf/config.json"
+    os.system(copyConfig)
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
@@ -579,7 +601,7 @@ def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
     sleep(120)
     print("Routing initialized!")
 
-def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
+def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, sharding_num):
     print(
         "Copy FISCO conf file to each ground station container and run blockchain node process."
     )
@@ -589,17 +611,35 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
     print(f"total: {total} fac_node_number: {fac_node_number}")
     
     
+    # 生成配置文件
     network_ip = "192.168.2."
-    with open(os.path.join(path, 'ipconf'), 'w') as f:
-        for gs_idx in range(total-fac_node_number, total):
-            print(f"{total-fac_node_number} {gs_idx}")
-            idx = gs_idx + 1
-            # f.write(f"9.{idx}.{idx}.10 agencyA 1\n")
-            f.write(f"{network_ip}{gs_idx} agencyA 1\n")
+    conf_files = []
+
+    for i in range(sharding_num):
+        f = open(os.path.join(path, f'ipconf{i}'), 'w')
+        for gs_idx in range(0, fac_node_number):
+            if gs_idx % sharding_num == i:
+                print(f"generating conf{i}: {total - fac_node_number}, {gs_idx}")
+                f.write(f"{network_ip}{gs_idx+total-fac_node_number} agency{i} 1\n")
+        conf_files.append(f)
     
-    print(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"])
-    conf_fisco = subprocess.run(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"], capture_output=True, text=True)
-    print(f"Generate FISCO conf {conf_fisco.stdout}")
+    for f in conf_files:
+        f.close()
+
+    pattern = r'output_dir=nodes'
+    for i in range(sharding_num):
+        replacement = f'output_dir=nodes{i}'
+        with open(os.path.join(f'{path}', 'build_chain.sh'), 'r') as file:
+            content = file.read()
+        new_content = re.sub(pattern, replacement, content)
+        with open(os.path.join(f'{path}', f'build_chain{i}.sh'), 'w') as file:
+            file.write(new_content)
+        print(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"])
+        conf_fisco = subprocess.run(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"], capture_output=True, text=True)
+        # mv_res = subprocess.run(["mv", "nodes", f"nodes{i}"], capture_output=True, text=True)
+        print(f"Generate FISCO conf {i} {conf_fisco.stdout}")
+        # print(f"{mv_res}")
+
 
     copy_threads = []
     # for current in range(total-fac_node_number, total):
@@ -607,17 +647,19 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path):
         print("sn_copy_blockchain_conf")
         if current >= total-fac_node_number:
             # blockchain node
-            idx = current + 1
+            nodei = (current - (total - fac_node_number)) % sharding_num
             copy_thread = threading.Thread(
                 target=sn_copy_blockchain_conf,
                 # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
-                args=(container_id_list[current], path, f"~/nodes/{network_ip}{current}", current, total) 
+                args=(container_id_list[current], path, f"~/nodes{nodei}/{network_ip}{current}", current, total) 
             )
         else:
             # client (console)
             caNum = total-fac_node_number + 1
             # caPath = f"~/nodes/9.{caNum}.{caNum}.10/sdk"
-            caPath = f"~/nodes/{network_ip}{caNum-1}/sdk"
+            # TODO 需要修改成不同分片
+            nodei = current % sharding_num
+            caPath = f"~/nodes{nodei}/{network_ip}{caNum-1}/sdk"
             print(f"caPath: {caPath}")
             copy_thread = threading.Thread(
                 target=sn_copy_client_conf,
@@ -929,14 +971,15 @@ if __name__ == '__main__':
                                                constellation_size, GS_num,
                                                path)
 
-    elif len(sys.argv) == 5:
-        if sys.argv[4] == "blockchain":
-            # Init blockchain network
+    elif len(sys.argv) == 6:
+        if sys.argv[5] == "blockchain":
+            # Init blockchain network (sn_Blockchain_Init_Thread in sn_utils.py)
             constellation_size = int(sys.argv[1])
             GS_num = int(sys.argv[2])
             path = sys.argv[3]
+            sharding_num = int(sys.argv[4])
             container_id_list = sn_get_container_info()
-            sn_copy_run_blockchain_to_each_gs(container_id_list, GS_num, path)
+            sn_copy_run_blockchain_to_each_gs(container_id_list, GS_num, path, sharding_num)
             sn_deploy_contract(container_id_list, len(container_id_list)-GS_num)
 
     elif len(sys.argv) == 2:

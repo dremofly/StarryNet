@@ -6,6 +6,7 @@ import numpy
 import subprocess
 import select
 import re
+import random
 """
 Used in the remote machine for link updating, initializing links, damaging and recovering links and other functionalities。
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn) 
@@ -548,10 +549,32 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     # 生成role文件
     relshardingPath = "/relsharding-client/relsharding-client/dist"
     roleStr = "client"
+    relayer_list = []
     if (current + 1 ) % 5 == 0:
         roleStr = "relayer"
     genRoleCmd = f'docker exec -d {container_idx} bash -c "echo {roleStr} > {relshardingPath}/role.txt"'
     os.system(genRoleCmd)
+    for i in range(total):
+        if (i+1) % 5 == 0:
+            relayer_list.append(i+1)
+    
+    if roleStr == "relayer":
+        relayer_list.remove(current+1)
+
+    # 生成 my_relayers.txt 文件，或者生成 other_relayers.txt
+    if roleStr == "client":
+        random.shuffle(relayer_list)
+        relayerStr = ""
+        for relayerNum in relayer_list:
+            relayerStr += str(relayerNum) + " "
+        genRelayerListCmd = f'docker exec -d {container_idx} bash -c "echo {relayerStr} > {relshardingPath}/my_relayers.txt"'
+        os.system(genRelayerListCmd)
+    elif roleStr == "relayer":
+        relayerStr = ""
+        for relayerNum in relayer_list:
+            relayerStr += str(relayerNum) + " "
+        genRelayerListCmd = f'docker exec -d {container_idx} bash -c "echo {relayerStr} > {relshardingPath}/other_relayers.txt"'
+        os.system(genRelayerListCmd)
 
     # copy证书
     copySDKcrt = f"docker cp {Path}/sdk.crt {container_idx}:/fisco-client/console/conf/sdk.crt"

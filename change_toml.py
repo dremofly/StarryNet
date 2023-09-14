@@ -6,6 +6,7 @@ os.chdir("/fisco-client/console/conf")
 
 data = toml.load('config-example.toml')
 
+# TODO 根据不同的shards的数据编写
 
 caNum = int(sys.argv[1])
 total = int(sys.argv[2])

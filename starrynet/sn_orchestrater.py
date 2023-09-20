@@ -671,11 +671,12 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
         print("sn_copy_blockchain_conf")
         if current >= total-fac_node_number:
             # blockchain node
+            caNum = total-fac_node_number + 1
             nodei = (current - (total - fac_node_number)) % sharding_num
             copy_thread = threading.Thread(
                 target=sn_copy_blockchain_conf,
                 # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
-                args=(container_id_list[current], path, f"~/nodes{nodei}/{network_ip}{current}", current, total) 
+                args=(container_id_list[current], path, f"~/nodes{nodei}/{network_ip}{current}", current, total, caNum) 
             )
         else:
             # client (console)

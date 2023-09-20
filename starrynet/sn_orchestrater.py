@@ -554,14 +554,13 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
         roleStr = "relayer"
     genRoleCmd = f'docker exec -d {container_idx} bash -c "echo {roleStr} > {relshardingPath}/role.txt"'
     os.system(genRoleCmd)
+
+    # 生成 my_relayers.txt 文件，或者生成 other_relayers.txt
     for i in range(total):
         if (i+1) % 5 == 0:
             relayer_list.append(i+1)
-    
     if roleStr == "relayer":
         relayer_list.remove(current+1)
-
-    # 生成 my_relayers.txt 文件，或者生成 other_relayers.txt
     if roleStr == "client":
         random.shuffle(relayer_list)
         relayerStr = ""

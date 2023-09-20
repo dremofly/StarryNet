@@ -598,8 +598,14 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     os.system(genConfig)
 
     # copy config.toml to relsharding-client
-    copyConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config.json /relsharding-client/relsharding-client/dist/conf/config.json"
+    copyConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config.toml /relsharding-client/relsharding-client/dist/conf/config.toml"
     os.system(copyConfig)
+
+    # Run relayerServer
+    if roleStr == "relayer":
+        # runRelayerServerCmd = f'docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp' + 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'
+        runRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'''
+        os.system(runRelayServerCmd)
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,

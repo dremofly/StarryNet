@@ -600,11 +600,22 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     copyConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config.toml /relsharding-client/relsharding-client/dist/conf/config.toml"
     os.system(copyConfig)
 
+    relshardingPyPath = "/relsharding-py/relsharding-py"
+    # Run relayClient
+    if roleStr == 'client':
+        runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python client.py"''' 
+        print(runPyRelayServerCmd)
+        os.system(runPyRelayServerCmd)
+
     # Run relayerServer
     if roleStr == "relayer":
         # runRelayerServerCmd = f'docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp' + 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'
-        runRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'''
-        os.system(runRelayServerCmd)
+        # runRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'''
+        # os.system(runRelayServerCmd)
+        # TODO: relayServer.py的运行需要加入url
+        runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python relayServer.py"''' 
+        print(runPyRelayServerCmd)
+        os.system(runPyRelayServerCmd)
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,

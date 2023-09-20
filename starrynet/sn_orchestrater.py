@@ -524,13 +524,15 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
           "] Bird routing process for container: " + str(container_idx) +
           " has started. ")
 
-def sn_copy_blockchain_conf(container_idx, path, Path, current, total):
+def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
+    """
+    复制到ground station
+    """
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco")
     
     # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/")
     # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/dist")
-    os.system(f"docker cp {path}/")
 
     os.system("docker cp " + Path + " " + str(container_idx) + ":/fisco")
     sleep(1)

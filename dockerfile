@@ -26,7 +26,7 @@ COPY ./aioquic /home/aioquic
 # RUN alias python='/usr/local/bin/python3.10' # python版本绑定
 RUN ln -s /usr/local/bin/python3.10 /usr/bin/python 
 
-RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette
+RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette typer requests
 COPY ./pyledbat /home/pyledbat
 
 WORKDIR /
@@ -37,15 +37,22 @@ COPY console.tar.gz /fisco-client
 RUN apt install -y default-jdk
 RUN tar -xzvf console.tar.gz
 COPY change_toml.py /fisco-client/console/conf/change_toml.py
+# temp add change_toml2.py
+COPY change_toml2.py /fisco-client/console/conf/change_toml2.py 
 COPY SimpleBank.sol /fisco-client/console/contracts/solidity/SimpleBank.sol
 COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 
 WORKDIR /
 RUN mkdir /relsharding-client
+RUN mkdir /relsharding-py
 WORKDIR /relsharding-client
 COPY relsharding-clientv0.1.tar.gz /relsharding-client
 RUN tar -xzvf relsharding-clientv0.1.tar.gz
+
+WORKDIR /relsharding-py
+COPY relsharding-pyv0.1.tar.gz /relsharding-py
+RUN tar -xzvf relsharding-pyv0.1.tar.gz
 
 WORKDIR /
 

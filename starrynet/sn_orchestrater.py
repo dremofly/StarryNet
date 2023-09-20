@@ -609,9 +609,6 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
 
     # Run relayerServer
     if roleStr == "relayer":
-        # runRelayerServerCmd = f'docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp' + 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'
-        # runRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.RelayServer"'''
-        # os.system(runRelayServerCmd)
         # TODO: relayServer.py的运行需要加入url
         runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python relayServer.py"''' 
         print(runPyRelayServerCmd)

@@ -544,6 +544,31 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
         print("Error: start blockchain error", e)
         exit(0)
 
+    relshardingPath = "/relsharding-client/relsharding-client/dist"
+    # copy证书到relsharding-client中
+    copySDKcrtRel = f"docker cp {Path}/sdk/sdk.crt {container_idx}:{relshardingPath}/conf/sdk.crt"
+    copySDKkeyRel = f"docker cp {Path}/sdk/sdk.key {container_idx}:{relshardingPath}/conf/sdk.key"
+    copyCaRel = f"docker cp {Path}/sdk/ca.crt {container_idx}:{relshardingPath}/conf/ca.crt"
+    os.system(copySDKcrtRel)
+    os.system(copySDKkeyRel)
+    os.system(copyCaRel)
+
+    # copy config.toml
+    # genConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config-example.toml /fisco-client/console/conf/config.toml"
+    genConfig = f"docker exec -d {container_idx} python /fisco-client/console/conf/change_toml2.py {caNum} {total} {current+1}"
+    os.system(genConfig)
+    
+    # copy config.toml to relsharding-client
+    copyConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config.toml /relsharding-client/relsharding-client/dist/conf/config.toml"
+    os.system(copyConfig)
+
+    # runFinalServerCmd = f'''docker exec -d {container_idx} bash -c "cd /relsharding-client/relsharding-client/dist && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.FinalServer"'''
+    # os.system(runFinalServerCmd)
+    relshardingPyPath = "/relsharding-py/relsharding-py"
+    runPyFinalServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python finalServer.py"''' 
+    print(runPyFinalServerCmd)
+    os.system(runPyFinalServerCmd)
+
 def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco-client/console/conf")

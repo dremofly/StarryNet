@@ -7,6 +7,18 @@ import typer
 import json
 import os
 
+def modify_config_duration(base_file, new_file, duration):
+        # 读取源文件内容
+    with open(base_file, 'r') as file:
+        data = json.load(file)
+
+    # 修改字典中的对应值
+    data['Duration (s)'] = duration  # 请根据需要更改此值
+
+    # 将修改后的字典写回目标文件
+    with open(new_file, 'w') as file:
+        json.dump(data, file, indent=4)  # indent=4 使输出更易读
+
 def create_terrestrial_network(sn: StarryNet):
     """
     创建一个地面网络，用于ground stations的连接
@@ -20,14 +32,22 @@ def create_terrestrial_network(sn: StarryNet):
     network_name = "terrestrial"
     network_ip = "192.168.2."
 
-    # res = sn_remote_cmd(remote_ssh, f"docker network create {network_name} --subnet {network_ip}0/24")
-    # print(res)
+    # create network
+    try:
+        res = sn_remote_cmd(remote_ssh, f"docker network create {network_name} --subnet {network_ip}0/24")
+        print(res)
+    except Exception as e:
+        print(f"{network_name} exists")
 
     container_id_list = sn_get_container_info(remote_ssh)
     for i in range(sat_num*orbit_num, gs_num+sat_num*orbit_num):
-        container_idx = container_id_list[i]
-        connectRes = sn_remote_cmd(remote_ssh, f"docker network connect {network_name} {container_idx} --ip {network_ip}{i}")
-        print(f"gs {i}: {connectRes}")
+        try:
+            container_idx = container_id_list[i]
+            connectRes = sn_remote_cmd(remote_ssh, f"docker network connect {network_name} {container_idx} --ip {network_ip}{i}")
+            print(f"gs {i}: {connectRes}")
+        except Exception as e:
+            print(f"error: i {i}, container list {container_id_list}", e)
+            exit(1)
 
 
 def get_ll(file) -> list:
@@ -54,38 +74,45 @@ def main():
 
     locations = get_ll("region.json")
 
-    clearNode = "rm -rf /home/hong/nodes"
+    clearNode = "rm -rf /home/hong/nodes*"
     os.system(clearNode)
     
     # GS_lat_long = locations[:5]
-
-    GS_lat_long = [[50.110924, 8.682127],
-                    [46.635700, 14.311817],
-                    [43.185857, 20.9384857],
-                    [49.283858, 9.28385],
-                    [48.828737, 12.943848],
-                    [48.1827, 10],
-                    [47, 4],
-                    [45, 13],
-                    [44, 2],
-                    [51, 6]
-                   ]  # latitude and longitude of frankfurt and  Austria
+    GS_lat_long = [[37.950, -138.682127],
+                [-38.398690,-135.251976],
+                [-22.679610,171.437716],
+                [49.283858, 9.28385],
+                [5.454320,121.290221],
+                [48.1827, 10],
+                [47, 4],
+                [45, 13],
+                [44, 2],
+                [51, 6]
+                ]
     print(f'GS_lat_long: {GS_lat_long}')
     # configuration_file_path = "./config.json.6020"
-    configuration_file_path = os.environ.get('STARRY_CONFIG')
+    # export STARRY_CONFIG=config.json.nuc
+    # configuration_file_path = os.environ.get('STARRY_CONFIG')
+
+
+    duration = 10
+    base_configuration_file_path = "./config.json.nuc"
+    configuration_file_path = "./current2.json"
+    modify_config_duration(base_configuration_file_path, configuration_file_path, duration)
 
     hello_interval = 1  # hello_interval(s) in OSPF. 1-200 are supported.
     AS = [[1, 25+len(GS_lat_long)]]  # Node #1 to Node #27 are within the same AS.
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
 
-    sn.create_nodes()
-    sn.create_links()
-    sn.run_routing_deamon()
-    create_terrestrial_network(sn)
-    sn.run_blockchain_nodes()
+    resetOrNot = True # 不需要初始化的话 False (节省时间)
+    if resetOrNot:
+        sn.create_nodes()
+        sn.create_links()
+        sn.run_routing_deamon()
 
+        create_terrestrial_network(sn)
 
-    
+        sn.run_blockchain_nodes(sharding_num=2)
 
     # for i in range(2):
     node_index1 = 1
@@ -95,8 +122,5 @@ def main():
 
     sn.start_emulation()
 
-
 if __name__ == "__main__":
   typer.run(main)
-    
-

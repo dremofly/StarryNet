@@ -10,7 +10,13 @@ RUN wget https://www.python.org/ftp/python/3.10.0/Python-3.10.0.tgz
 RUN tar xzf Python-3.10.0.tgz
 
 WORKDIR /tmp/Python-3.10.0
-RUN ./configure --enable-optimizations
+RUN apt-get update && apt-get install -y \ 
+    libc6 \
+    libc6-dev \
+    gcc \
+    libffi-dev gcc musl-dev
+
+RUN ./configure --enable-optimizations --with-ctypes
 RUN make altinstall
 RUN apt install -y libssl-dev
 
@@ -44,6 +50,8 @@ COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 
 WORKDIR /
+RUN python -m pip install grpcio grpcio-tools
+
 RUN mkdir /relsharding-client
 RUN mkdir /relsharding-py
 WORKDIR /relsharding-client

@@ -637,13 +637,15 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
         runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python client.py"''' 
         print(runPyRelayServerCmd)
         os.system(runPyRelayServerCmd)
-
     # Run relayerServer
     if roleStr == "relayer":
         # TODO: relayServer.py的运行需要加入url
         runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python relayServer.py"''' 
         print(runPyRelayServerCmd)
         os.system(runPyRelayServerCmd)
+    runPyServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPath} && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.FiscoServer"'''
+    print(runPyServerCmd)
+    os.system(runPyServerCmd)
 
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,

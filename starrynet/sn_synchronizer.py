@@ -134,7 +134,7 @@ class StarryNet():
               str(len(self.container_id_list)) + " have been created.\n")
 
     def create_links(self):
-        print("Create Links.")
+        print(f"Create Links.")
         isl_thread = sn_Link_Init_Thread(
             self.remote_ssh, self.remote_ftp, self.orbit_number,
             self.sat_number, self.constellation_size, self.fac_num,
@@ -155,7 +155,7 @@ class StarryNet():
         routing_thread.join()
         print("Bird routing in all containers are running.")
     
-    def run_blockchain_nodes(self):
+    def run_blockchain_nodes(self, sharding_num=1):
         """
         在ground station中运行nodes，
         TODO 在satellite中运行clients
@@ -164,7 +164,7 @@ class StarryNet():
             self.remote_ssh, self.remote_ftp, self.orbit_number,
             self.sat_number, self.constellation_size, self.fac_num,
             self.file_path, self.sat_bandwidth, self.sat_ground_bandwidth,
-            self.sat_loss, self.sat_ground_loss)
+            self.sat_loss, self.sat_ground_loss, sharding_num)
         blockchain_thread.start()
         blockchain_thread.join()
         print("All blockchain nodes are started.")

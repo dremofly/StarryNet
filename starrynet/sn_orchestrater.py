@@ -569,6 +569,10 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
     print(runPyFinalServerCmd)
     os.system(runPyFinalServerCmd)
 
+    runPyServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPath} && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.FiscoServer"'''
+    print(runPyServerCmd)
+    os.system(runPyServerCmd)
+
 def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     print("[" + str(current + 1) + "/" + str(total) + "]" +
         f" docker cp {Path} {container_idx}:/fisco-client/console/conf")

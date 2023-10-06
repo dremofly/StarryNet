@@ -61,6 +61,17 @@ RUN tar -xzvf relsharding-clientv0.1.tar.gz
 WORKDIR /relsharding-py
 COPY relsharding-pyv0.1.tar.gz /relsharding-py
 RUN tar -xzvf relsharding-pyv0.1.tar.gz
+# RUN apt install -y nodejs npm
+# 安装Node.js和npm
+RUN apt-get update && apt-get install -y curl gnupg apt-transport-https ca-certificates
+RUN apt-get install -y ca-certificates curl gnupg
+RUN mkdir -p /etc/apt/keyrings
+RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_16.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+RUN apt-get update
+RUN apt-get install nodejs -y
+WORKDIR /relsharding-py/relsharding-py/js
+RUN npm install --save axios
 
 WORKDIR /
 

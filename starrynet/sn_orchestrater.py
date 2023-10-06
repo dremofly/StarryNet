@@ -590,7 +590,9 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum, contai
     os.system(genRoleCmd)
 
     # 生成 my_relayers.txt 文件，或者生成 other_relayers.txt
-    for i in range(total):
+    # FIXME: relayer的数量
+    for i in range(caNum):
+        # TODO: 简易的relayer分配法，需要根据论文中的的机制来进行分配
         if (i+1) % 5 == 0:
             relayer_list.append(i+1)
     if roleStr == "relayer":

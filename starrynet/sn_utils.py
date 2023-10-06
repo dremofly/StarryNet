@@ -272,7 +272,6 @@ def sn_delete_remote_network_bridge(remote_ssh):
             print('docker network rm ' + network_name)
             sn_remote_cmd(remote_ssh, 'docker network rm ' + network_name)
 
-
 def sn_reset_docker_env(remote_ssh, docker_service_name, node_size):
     print("Reset docker environment for constellation emulation ...")
     print("Remove legacy containers.")
@@ -288,6 +287,10 @@ def sn_reset_docker_env(remote_ssh, docker_service_name, node_size):
         # " --cap-add ALL lwsen/starlab_node:1.0 ping www.baidu.com")
         " --cap-add ALL mynode ping www.baidu.com")
         # " --cap-add ALL mynode --args \"bird -c /home/bird/bird.conf\"") # 默认运行动态路由协议
+    print("docker service create --replicas " + str(node_size) +
+        " --name " + str(docker_service_name) +
+        # " --cap-add ALL lwsen/starlab_node:1.0 ping www.baidu.com")
+        " --cap-add ALL mynode ping www.baidu.com")
 
 
 
@@ -399,7 +402,7 @@ class sn_Routing_Init_Thread(threading.Thread):
 class sn_Blockchain_Init_Thread(threading.Thread):
     def __init__(self, remote_ssh, remote_ftp, orbit_num, sat_num,
                  constellation_size, fac_num, file_path, sat_bandwidth,
-                 sat_ground_bandwidth, sat_loss, sat_ground_loss):
+                 sat_ground_bandwidth, sat_loss, sat_ground_loss, sharding_num):
         threading.Thread.__init__(self)
         self.remote_ssh = remote_ssh
         self.constellation_size = constellation_size
@@ -412,6 +415,7 @@ class sn_Blockchain_Init_Thread(threading.Thread):
         self.sat_loss = sat_loss
         self.sat_ground_loss = sat_ground_loss
         self.remote_ftp = remote_ftp
+        self.sharding_num = sharding_num
     def run(self):
         print(f"Thread sn_Blockchain_Init")
         self.remote_ftp.put(
@@ -422,16 +426,26 @@ class sn_Blockchain_Init_Thread(threading.Thread):
             os.path.join(os.getcwd(), "build_chain.sh"),
             self.file_path + "/build_chain.sh")
 
+        key_dir = os.path.join(os.getcwd(), "keys")
+        sn_remote_cmd(self.remote_ssh, f"mkdir -p {self.file_path}/keys")
+        for f in os.listdir(key_dir):
+            self.remote_ftp.put(
+                os.path.join(key_dir, f),
+                self.file_path + "/keys/" + f
+            )
+
         print(
             PYTHON_PATH + " " + self.file_path +
             "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-            str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+            str(self.fac_num) + " " + self.file_path + " " + str(self.sharding_num) + " "  + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+
         print('Initialize Blockchain network')
         try:
             sn_remote_cmd(
                 self.remote_ssh, PYTHON_PATH + " " + self.file_path +
                 "/sn_orchestrater.py" + " " + str(self.constellation_size) + " " +
-                str(self.fac_num) + " " + self.file_path + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+                str(self.fac_num) + " " + self.file_path + " " + str(self.sharding_num) + " " + "blockchain" " > " + self.file_path + "/observe_blockchain.log")
+
             print("Blockchain initialized!")
         except Exception as e:
             print("[ERROR] - ", e)
@@ -1035,26 +1049,31 @@ def sn_ping(src, des, time_index, constellation_size, container_id_list,
 def sn_deposit(src, des, time_index, container_id_list,
                 file_path, configuration_file_path, remote_ssh):
     """
-    调用SimpleBank合约中的deposit操作
+    调用SimpleBank合约中的deposit操作。
     """
-    getAccountCmd = f'docker exec -it {container_id_list[des-1]} bash fisco-client/console/get_account.sh'
-    
-    
-    accountRes = subprocess.run(['docker', 'exec', '-it', str(container_id_list[des-1]), 'bash', 'fisco-client/console/get_account.sh'], capture_output=True, text=True)
-    # accountRes = os.system(getAccountCmd)
-    print(accountRes.stdout)
-    print("\n")
-    match = re.search(r"Account Address\s*:\s*(0x[a-fA-F0-9]+)", accountRes.stdout)
-    if match:
-        account = match.group(1)
-        print(f"found account {account}\n")
-    else:
-        print("Address not found.")
-        exit(0)
-        # print(account) 
+    # 获取des的address
+    # TODO: 使用cat从`relsharding/relsharding/dist/keys`中获取B{des}pub.txt
+    pubPath = "/relsharding-client/relsharding-client/dist/keys/" # B{num}pub.txt 所在的路径
 
-    # '138d8392a9b'
-    cmd = f'docker exec {container_id_list[src-1]} bash call_contract.sh {account}'
+    getSrcAccountCmd = f'docker exec -it {container_id_list[src-1]} cat {pubPath}/B{src}pub.txt'
+    srcAccountRes = subprocess.run(getSrcAccountCmd.split(), capture_output=True, text=True)
+    srcAccount = srcAccountRes.stdout
+    print(f"src address: {srcAccount}")
+
+    getDesAccountCmd = f'docker exec -it {container_id_list[des-1]} cat {pubPath}/B{des}pub.txt'
+    desAccountRes = subprocess.run(getDesAccountCmd.split(), capture_output=True, text=True)
+    desAccount = desAccountRes.stdout
+    print(f"de address: {desAccount}")
+
+    # 发起交易
+    # TODO: 修改成curl的形式
+    # curl -X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","client_url":"http://10.0.1.40:5000/feedback", "receiver": "0xb6c01da64424a3345a25813016587f4264b6b3da", "relay_url":"http://10.0.9.40:5001/receivetx", "src_id":1, "des_id":1}' http://127.0.0.1:5000/sendtx
+    clientIP = ""
+    relayIP = ""
+    receiverIP = ""
+    cmd = f'''curl X POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","client_url":"http://{clientIP}:5000/feedback", "receiver": "0xb6c01da64424a3345a25813016587f4264b6b3da", "relay_url":"http://{relayIP}:5001/receivetx", "src_id":1, "des_id":1}' http://127.0.0.1:5000/sendtx'''
+    
+    cmd = f'docker exec {container_id_list[src-1]} bash call_contract.sh {desAccount}'
     print(f"sn_deposit {src} {time_index} {cmd} account\n")
     deposit_res = sn_remote_cmd(remote_ssh, cmd)
     f = open(
@@ -1080,13 +1099,13 @@ def sn_perf(src, des, time_index, constellation_size, container_id_list,
             " ifconfig B" + str(des) +
             "-default |awk -F '[ :]+' 'NR==2{print $4}'")
 
-    sn_remote_cmd(
+    server_res = sn_remote_cmd(
         remote_ssh,
         "docker exec -id " + str(container_id_list[des - 1]) + " iperf3 -s ")
-    print(f"[{src}, {des} ] iperf server success")
+    print(f"[{src}, {des} ] iperf server success {server_res}")
     perf_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " iperf3 -C cubic -c " + str(des_IP[0][:-1]) + " -t 5 ")
+        " iperf3 -C cubic -c " + str(des_IP[0][:-1]) + " -t 5 -P 30")
     print(f"[{src}, {des} ] iperf client success")
     f = open(
         configuration_file_path + "/" + file_path + "/perfcubic-" + str(src) + "-" +
@@ -1110,14 +1129,27 @@ def sn_perf2(src, des, time_index, constellation_size, container_id_list,
             remote_ssh, "docker exec -it " + str(container_id_list[des - 1]) +
             " ifconfig B" + str(des) +
             "-default |awk -F '[ :]+' 'NR==2{print $4}'")
+    
+    # 关闭iperf3 server
+    # grep_res = sn_remote_cmd(remote_ssh, 
+    #               "docker exec -id " + str(container_id_list[des-1]) + ' bash -c "ps -aux | grep iperf3"')
+    # server_pid = ""
+    # for item in grep_res:
+    #     if "iperf3 -s" in item:
+    #         server_pid = item.split()[1]
+    #         break
 
-    sn_remote_cmd(
+    # if server_pid != "":
+    #     sn_remote_cmd(remote_ssh, 
+    #                   f'docker exec -id {str(container_id_list[des-1])} kill -9 {server_pid}') 
+
+    server_res = sn_remote_cmd(
         remote_ssh,
         "docker exec -id " + str(container_id_list[des - 1]) + " iperf3 -s ")
-    print(f"[{src}, {des} ] iperf server success")
+    print(f"[{src}, {des} ] iperf server success {server_res}")
     perf_result = sn_remote_cmd(
         remote_ssh, "docker exec -i " + str(container_id_list[src - 1]) +
-        " iperf3 -C bbr -c " + str(des_IP[0][:-1]) + " -t 5 ")
+        " iperf3 -C bbr -c " + str(des_IP[0][:-1]) + " -t 5 -P 30")
     print(f"[{src}, {des} ] iperf client success")
     f = open(
         configuration_file_path + "/" + file_path + "/perfbbr-" + str(src) + "-" +

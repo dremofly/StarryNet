@@ -12,6 +12,9 @@ Used in the remote machine for link updating, initializing links, damaging and r
 author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn) and Zeqi Lai (zeqilai@tsinghua.edu.cn) 
 """
 
+def print_log(message, isPrint=True):
+    if isPrint:
+        print(message)
 
 def sn_get_right_satellite(current_sat_id, current_orbit_id, orbit_num):
     if current_orbit_id == orbit_num - 1:

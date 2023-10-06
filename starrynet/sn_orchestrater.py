@@ -576,9 +576,9 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
     print(runPyServerCmd)
     os.system(runPyServerCmd)
 
-def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
-    print("[" + str(current + 1) + "/" + str(total) + "]" +
-        f" docker cp {Path} {container_idx}:/fisco-client/console/conf")
+def sn_copy_client_conf(container_idx, path, Path, current, total, caNum, container_id_list):
+    print_log("[" + str(current + 1) + "/" + str(total) + "]" +
+        f" sn_copy_client_conf docker cp {Path} {container_idx}:/fisco-client/console/conf")
 
     # 生成role文件
     relshardingPath = "/relsharding-client/relsharding-client/dist"
@@ -599,10 +599,43 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
         random.shuffle(relayer_list)
         relayerStr = ""
         for relayerNum in relayer_list:
-            relayerStr += str(relayerNum) + " "
+            try:
+                ifconfigCmd = "docker exec -it " + str(container_id_list[relayerNum - 1]) + " ifconfig | sed 's/[ \t].*//;/^\(eth0\|\)\(lo\|\)$/d'"
+                # ifconfig_output = os.system(ifconfigCmd)
+                ifconfigRes = os.popen(ifconfigCmd)
+                ifconfig_output = ""
+                for ir in ifconfigRes.readlines():
+                    ifconfig_output += ir
+                
+                targetInterface = ir.split('\n')[0]
+
+                print(f'[{current+1} / {total}] ifconfig cmd: {ifconfigCmd}')
+                print(f'[{current+1} / {total}] ifconfig_output: {targetInterface}')
+                ifconfigRes.close()
+
+                desIPCmd = "docker exec -it " + str(container_id_list[relayerNum - 1]) + " ifconfig " + targetInterface + "|awk -F '[ :]+' 'NR==2{print $4}'"
+                # des_IP = os.system(desIPCmd)
+                desF = os.popen(desIPCmd)
+                des_output = ""
+                for line in desF.readlines():
+                    des_output += line
+                des_IP = des_output.strip()
+                desF.close()
+
+                print(f'[{current+1} / {total}] {desIPCmd}')
+                print(f'[{current+1} / {total}] des_Ip: {des_IP}')
+                relayerStr += str(relayerNum) + " "
+
+                tempStr = f"{relayerNum} {des_IP}"
+                print(f'[{current+1} / {total}] tempStr: {tempStr}')
+                genRelayerListCmd2 = f'''docker exec -d {container_idx} bash -c "echo {tempStr} >> {relshardingPath}/my_relayers2.txt"'''
+                os.system(genRelayerListCmd2)
+            except Exception as e:
+                print(f"sn_copy_client_conf error {e}")
         genRelayerListCmd = f'docker exec -d {container_idx} bash -c "echo {relayerStr} > {relshardingPath}/my_relayers.txt"'
         os.system(genRelayerListCmd)
     elif roleStr == "relayer":
+        # TODO: 添加relayer IP到文件中
         relayerStr = ""
         for relayerNum in relayer_list:
             relayerStr += str(relayerNum) + " "
@@ -638,18 +671,17 @@ def sn_copy_client_conf(container_idx, path, Path, current, total, caNum):
     # Run relayClient
     if roleStr == 'client':
         runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python client.py"''' 
-        print(runPyRelayServerCmd)
+        print(f'[{current+1} / {total}] runPyRelayServerCmd')
         os.system(runPyRelayServerCmd)
     # Run relayerServer
     if roleStr == "relayer":
         # TODO: relayServer.py的运行需要加入url
         runPyRelayServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPyPath} && python relayServer.py"''' 
-        print(runPyRelayServerCmd)
+        print(f'[{current+1} / {total}] {runPyRelayServerCmd}')
         os.system(runPyRelayServerCmd)
     runPyServerCmd = f'''docker exec -d {container_idx} bash -c "cd {relshardingPath} && java -cp 'conf/:lib/*:apps/*' org.fisco.bcos.sdk.demo.rclient.FiscoServer"'''
-    print(runPyServerCmd)
+    print(f'[{current+1} / {total}] runPyServerCmd')
     os.system(runPyServerCmd)
-
 
 def sn_copy_run_conf_to_each_container(container_id_list, sat_node_number,
                                        fac_node_number, path):
@@ -737,7 +769,7 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
             print(f"caPath: {caPath}")
             copy_thread = threading.Thread(
                 target=sn_copy_client_conf,
-                args=(container_id_list[current], path, caPath, current, total, caNum)
+                args=(container_id_list[current], path, caPath, current, total, caNum, container_id_list)
             )
         copy_threads.append(copy_thread)
     for copy_thread in copy_threads:
@@ -983,9 +1015,13 @@ def sn_deploy_contract(container_id_list, sat_number) -> str:
     # res = os.system(deployContractCmd)
     res = subprocess.run(deployContractCmd, capture_output=True, text=True)
 
-    print(f"deploy contract: {res.stdout}")
+    print_log(f"deploy contract: {container_idx} {res.stdout}")
 
-    print(res.stdout.split()[5])
+    try:
+        print_log(f"deploy contract res: {container_idx} {res.stdout.split()[5]}")
+    except Exception as e:
+        print_log(f"res deploy out error {e}")
+
     try:
         # contract_address = res.stdout[1].split(':')[1].strip()
         contract_address = res.stdout.split()[5]

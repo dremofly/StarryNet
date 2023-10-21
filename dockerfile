@@ -38,9 +38,18 @@ COPY ./pyledbat /home/pyledbat
 WORKDIR /
 RUN mkdir /fisco-client
 
+# 安装jdk-11
+COPY openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz /tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz
+WORKDIR /tmp
+RUN tar xvf openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz
+RUN echo "export PATH=$PATH:/tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64/bin" >> /etc/profile
+RUN . /etc/profile
+
 WORKDIR /fisco-client
 COPY console.tar.gz /fisco-client
-RUN apt install -y default-jdk
+# RUN apt install -y default-jdk
+# COPY openlogic-openjdk-jre-11.0.20+8-linux-x64-deb.deb /tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64-deb.deb
+# RUN dpkg -i /tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64-deb.deb
 RUN tar -xzvf console.tar.gz
 COPY change_toml.py /fisco-client/console/conf/change_toml.py
 # temp add change_toml2.py

@@ -59,7 +59,7 @@ COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 
 WORKDIR /
-RUN python -m pip install grpcio grpcio-tools
+RUN python -m pip install grpcio grpcio-tools "Flask[async]" aiohttp aiofiles
 
 RUN mkdir /relsharding-client
 RUN mkdir /relsharding-py

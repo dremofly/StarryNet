@@ -995,13 +995,15 @@ def sn_delay_change(link_x, link_y, delay, container_id_list,
     except Exception as e:
         print("Error: interface 1 ", e)
 
-def sn_copy_contract_address(container_idx, contract_address):
+def sn_copy_contract_address(container_idx, contract_address, contract_address2):
     """
     将contract address发给每个clients
     """
-    print(f"register_contract_address {container_idx}, {contract_address}")
+    print(f"register_contract_address {container_idx}, {contract_address}, {contract_address2}")
     write_cmd = f'docker exec {container_idx} bash -c "echo {contract_address} > /fisco-client/console/conf/contract_address.txt"'
     os.system(write_cmd)
+    write_cmd2 = f'docker exec {container_idx} bash -c "echo {contract_address2} > /fisco-client/console/conf/contract_address2.txt"'
+    os.system(write_cmd2)
     
 def sn_deploy_contract(container_id_list, sat_number) -> str:
     """
@@ -1009,31 +1011,47 @@ def sn_deploy_contract(container_id_list, sat_number) -> str:
     """
     print(f"[func begin] - sn_deploy_contract {container_id_list}, {sat_number}")
 
+    # deploy SimpleBank
     container_idx = container_id_list[0]
-
     deployContractCmd = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'SimpleBank']
     res = subprocess.run(deployContractCmd, capture_output=True, text=True)
-
+    # container_idx = "your_container_id"  # 替换为您的容器ID
+    # deployContractCmd = f"source /etc/profile && docker exec {container_idx} bash fisco-client/console/console.sh deploy SimpleBank"
+    # res = subprocess.run(["bash", "-c", deployContractCmd], capture_output=True, text=True)
     print_log(f"deploy contract: {container_idx} {res.stdout}")
-
     try:
-        print_log(f"deploy contract res: {container_idx} {res.stdout.split()[5]}")
+        print_log(f"deploy SimpleBank contract res: {container_idx} {res.stdout.split()[5]}")
     except Exception as e:
         print_log(f"res deploy out error {e}")
-
     try:
         # contract_address = res.stdout[1].split(':')[1].strip()
         contract_address = res.stdout.split()[5]
     except Exception as e:
         print(f"ERROR of contract_address {e}")
     
+    # deploy logging contract
+    deployContractCmd2 = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'logging']
+    res2 = subprocess.run(deployContractCmd2, capture_output=True, text=True)
+    # deployContractCmd2 = f"source /etc/profile && docker exec {container_idx} bash fisco-client/console/console.sh deploy logging"
+    # res2 = subprocess.run(["bash", "-c", deployContractCmd2], capture_output=True, text=True)
+    print_log(f"deploy logging contract: {container_idx} {res2.stdout}")
+    try:
+        print_log(f"deploy contract res: {container_idx} {res2.stdout.split()[5]}")
+    except Exception as e:
+        print_log(f"res deploy out error {e}")
+    try:
+        # contract_address = res.stdout[1].split(':')[1].strip()
+        contract_address2 = res2.stdout.split()[5]
+    except Exception as e:
+        print(f"ERROR of contract_address {e}")
+
     copy_threads = []
     for current in range(0, sat_number):
         # print(f"start threads {current}")
         # sn_copy_contract_address(container_id_list[current], contract_address)
         copy_thread = threading.Thread(
             target=sn_copy_contract_address,
-            args=(container_id_list[current], contract_address)
+            args=(container_id_list[current], contract_address, contract_address2)
         )
         copy_threads.append(copy_thread)
     for copy_thread in copy_threads:

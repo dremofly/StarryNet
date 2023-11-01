@@ -118,7 +118,7 @@ def main():
     node_index1 = 1
     node_index2 = 2
     time_index = 2
-    sn.set_deposit(node_index1, node_index2, time_index)
+    # sn.set_deposit(node_index1, node_index2, time_index)
 
     sn.start_emulation()
 

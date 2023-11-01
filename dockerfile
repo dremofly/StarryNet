@@ -1,7 +1,5 @@
 FROM lwsen/starlab_node:1.0
-
 ARG GUIC_DIR=../aioquic
-
 RUN apt update
 
 WORKDIR /tmp
@@ -42,8 +40,9 @@ RUN mkdir /fisco-client
 COPY openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz /tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz
 WORKDIR /tmp
 RUN tar xvf openlogic-openjdk-jre-11.0.20+8-linux-x64.tar.gz
-RUN echo "export PATH=$PATH:/tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64/bin" >> /etc/profile
-RUN . /etc/profile
+# RUN echo "export PATH=$PATH:/tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64/bin" >> /etc/profile
+# RUN . /etc/profile
+ENV PATH="${PATH}:$PATH:/tmp/openlogic-openjdk-jre-11.0.20+8-linux-x64/bin"
 
 WORKDIR /fisco-client
 COPY console.tar.gz /fisco-client
@@ -76,12 +75,12 @@ RUN tar -xzvf relsharding-pyv0.1.tar.gz
 RUN apt-get update && apt-get install -y curl gnupg apt-transport-https ca-certificates
 RUN apt-get install -y ca-certificates curl gnupg
 RUN mkdir -p /etc/apt/keyrings
-RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
-RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_16.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
-RUN apt-get update
-RUN apt-get install nodejs -y
-WORKDIR /relsharding-py/relsharding-py/js
-RUN npm install --save axios
+# RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+# RUN echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_16.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+# RUN apt-get update
+# RUN apt-get install nodejs -y
+# WORKDIR /relsharding-py/relsharding-py/js
+# RUN npm install --save axios
 
 WORKDIR /
 

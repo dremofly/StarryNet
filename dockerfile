@@ -55,6 +55,7 @@ COPY change_toml.py /fisco-client/console/conf/change_toml.py
 # temp add change_toml2.py
 COPY change_toml2.py /fisco-client/console/conf/change_toml2.py 
 COPY SimpleBank.sol /fisco-client/console/contracts/solidity/SimpleBank.sol
+COPY logging.sol /fisco-client/console/contracts/solidity/logging.sol
 COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
 

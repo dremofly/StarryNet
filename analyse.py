@@ -68,7 +68,11 @@ def perf_file(line: str) -> list:
     """process single line of perf result file"""
     data = line.split()
     # print(data)
-    duration = float(data[1].split('-')[-1])
+    try:
+        duration = float(data[1].split('-')[-1])
+    except Exception as e:
+        print(line, e)
+        return []
     # print(f'duration: {duration}')
     if data[4] == 'MBytes':
         data_size = float(data[3])
@@ -108,10 +112,14 @@ def process_perf(file_name: str) -> list:
     with open(file_name, 'r') as file:
         lines = file.readlines()
         if len(lines) >= 2:
-            last_second_line = lines[-4]
-            last_line = lines[-3]
-            s_time, s_data, s_rate = perf_file(last_second_line)
-            r_time, r_data, r_rate = perf_file(last_line)
+            try:
+                last_second_line = lines[-4]
+                last_line = lines[-3]
+                s_time, s_data, s_rate = perf_file(last_second_line)
+
+                r_time, r_data, r_rate = perf_file(last_line)
+            except:
+                pass
 
         else:
             print(f"File {file_name} doesn't have enough lines.")
@@ -324,7 +332,7 @@ def main(logpath: str):
     
     perf_files = get_test_files(perf_path)
     perf2_files = get_test_files(perf2_path)
-    ping2_files = get_test_files(ping_path)
+    # ping2_files = get_test_files(ping_path)
 
     process_one_operation(perf2_files, 'perfbbr')
 

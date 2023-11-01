@@ -1011,10 +1011,7 @@ def sn_deploy_contract(container_id_list, sat_number) -> str:
 
     container_idx = container_id_list[0]
 
-    # deployContractCmd = f"docker exec {container_idx} bash fisco-client/console/console.sh deploy SimpleBank"
     deployContractCmd = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'SimpleBank']
-    # res = sn_remote_cmd(sn.remote_ssh, deployContractCmd)
-    # res = os.system(deployContractCmd)
     res = subprocess.run(deployContractCmd, capture_output=True, text=True)
 
     print_log(f"deploy contract: {container_idx} {res.stdout}")

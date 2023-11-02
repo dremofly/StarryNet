@@ -722,30 +722,47 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
     network_ip = "192.168.2."
     conf_files = []
 
-    for i in range(sharding_num):
-        f = open(os.path.join(path, f'ipconf{i}'), 'w')
-        for gs_idx in range(0, fac_node_number):
-            if gs_idx % sharding_num == i:
-                print(f"generating conf{i}: {total - fac_node_number}, {gs_idx}")
-                f.write(f"{network_ip}{gs_idx+total-fac_node_number} agency{i} 1\n")
-        conf_files.append(f)
-    
-    for f in conf_files:
-        f.close()
+    different_group = True # 不同的shard的节点在不同的group。否则就是在不同的链
 
-    pattern = r'output_dir=nodes'
-    for i in range(sharding_num):
-        replacement = f'output_dir=nodes{i}'
-        with open(os.path.join(f'{path}', 'build_chain.sh'), 'r') as file:
-            content = file.read()
-        new_content = re.sub(pattern, replacement, content)
-        with open(os.path.join(f'{path}', f'build_chain{i}.sh'), 'w') as file:
-            file.write(new_content)
-        print(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"])
-        conf_fisco = subprocess.run(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"], capture_output=True, text=True)
+    # 生成不同的shard的配置文件
+    if different_group:
+        f = open(os.path.join(path, f'ipconf'), 'w')
+        for i in range(sharding_num):
+            for gs_idx in range(0, fac_node_number):
+                if gs_idx % sharding_num == i:
+                    print(f"generating conf{i}: {total - fac_node_number}, {gs_idx}")
+                    f.write(f"{network_ip}{gs_idx+total-fac_node_number} agency{i} {i+1}\n")
+        f.close()
+        print(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"])
+        conf_fisco = subprocess.run(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"], capture_output=True, text=True)
         # mv_res = subprocess.run(["mv", "nodes", f"nodes{i}"], capture_output=True, text=True)
         print(f"Generate FISCO conf {i} {conf_fisco.stdout}")
-        # print(f"{mv_res}")
+        
+    else:
+        for i in range(sharding_num):
+            f = open(os.path.join(path, f'ipconf{i}'), 'w')
+            for gs_idx in range(0, fac_node_number):
+                if gs_idx % sharding_num == i:
+                    print(f"generating conf{i}: {total - fac_node_number}, {gs_idx}")
+                    f.write(f"{network_ip}{gs_idx+total-fac_node_number} agency{i} 1\n")
+            conf_files.append(f)
+    
+        for f in conf_files:
+            f.close()
+
+        pattern = r'output_dir=nodes'
+        for i in range(sharding_num):
+            replacement = f'output_dir=nodes{i}'
+            with open(os.path.join(f'{path}', 'build_chain.sh'), 'r') as file:
+                content = file.read()
+            new_content = re.sub(pattern, replacement, content)
+            with open(os.path.join(f'{path}', f'build_chain{i}.sh'), 'w') as file:
+                file.write(new_content)
+            print(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"])
+            conf_fisco = subprocess.run(["bash", f"{path}/build_chain{i}.sh", "-f", f"{path}/ipconf{i}", "-p", "30300,20200,8545"], capture_output=True, text=True)
+            # mv_res = subprocess.run(["mv", "nodes", f"nodes{i}"], capture_output=True, text=True)
+            print(f"Generate FISCO conf {i} {conf_fisco.stdout}")
+            # print(f"{mv_res}")
 
 
     copy_threads = []

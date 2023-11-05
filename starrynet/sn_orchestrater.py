@@ -768,28 +768,40 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
     copy_threads = []
     # for current in range(total-fac_node_number, total):
     for current in range(0, total):
-        print("sn_copy_blockchain_conf")
+        print(f"sn_copy_blockchain_conf {current} / {total}")
         if current >= total-fac_node_number:
             # blockchain node
-            caNum = total-fac_node_number + 1
             nodei = (current - (total - fac_node_number)) % sharding_num
-            copy_thread = threading.Thread(
-                target=sn_copy_blockchain_conf,
-                # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
-                args=(container_id_list[current], path, f"~/nodes{nodei}/{network_ip}{current}", current, total, caNum) 
-            )
+            if different_group:
+                copy_thread = threading.Thread(
+                    target=sn_copy_blockchain_conf,
+                    # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+                    args=(container_id_list[current], path, f"~/nodes/{network_ip}{current}", current, total, caNum) 
+                )
+            else:
+                copy_thread = threading.Thread(
+                    target=sn_copy_blockchain_conf,
+                    # args=(container_id_list[current], path, f"~/nodes/9.{idx}.{idx}.10", current, total) 
+                    args=(container_id_list[current], path, f"~/nodes{nodei}/{network_ip}{current}", current, total, caNum) 
+                )
         else:
-            # client (console)
             caNum = total-fac_node_number + 1
-            # caPath = f"~/nodes/9.{caNum}.{caNum}.10/sdk"
-            # TODO 需要修改成不同分片
-            nodei = current % sharding_num
-            caPath = f"~/nodes{nodei}/{network_ip}{caNum-1}/sdk"
-            print(f"caPath: {caPath}")
-            copy_thread = threading.Thread(
-                target=sn_copy_client_conf,
-                args=(container_id_list[current], path, caPath, current, total, caNum, container_id_list)
-            )
+            if different_group:
+                print(f"different_group {True}")
+                caPath = f"~/nodes/{network_ip}{caNum-1}/sdk"
+                print(f"caPath: {caPath}")
+                copy_thread = threading.Thread(
+                    target=sn_copy_client_conf,
+                    args=(container_id_list[current], path, caPath, current, total, caNum, container_id_list)
+                )
+            else:
+                nodei = current % sharding_num
+                caPath = f"~/nodes{nodei}/{network_ip}{caNum-1}/sdk"
+                print(f"caPath: {caPath}")
+                copy_thread = threading.Thread(
+                    target=sn_copy_client_conf,
+                    args=(container_id_list[current], path, caPath, current, total, caNum, container_id_list)
+                )
         copy_threads.append(copy_thread)
     for copy_thread in copy_threads:
         copy_thread.start()

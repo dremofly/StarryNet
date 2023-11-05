@@ -280,7 +280,7 @@ def sn_reset_docker_env(remote_ssh, docker_service_name, node_size):
     print(sn_remote_cmd(remote_ssh, "docker rm -f $(docker ps -a -q)"))
     print("Remove legacy emulated ISLs.")
     sn_delete_remote_network_bridge(remote_ssh)
-    print("Creating new containers...")
+    print(f"Creating new containers... node_size {node_size}")
     sn_remote_cmd(
         remote_ssh, "docker service create --replicas " + str(node_size) +
         " --name " + str(docker_service_name) +

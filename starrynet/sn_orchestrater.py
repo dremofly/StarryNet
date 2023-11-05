@@ -730,13 +730,18 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
         for i in range(sharding_num):
             for gs_idx in range(0, fac_node_number):
                 if gs_idx % sharding_num == i:
-                    print(f"generating conf{i}: {total - fac_node_number}, {gs_idx}")
+                    print(f"generating conf: {gs_idx}/{total - fac_node_number} ")
                     f.write(f"{network_ip}{gs_idx+total-fac_node_number} agency{i} {i+1}\n")
+
+        # FIXME: 自动改变公共节点ipconf中group的数量
+        print(f"generating public node conf")
+        f.write(f"{network_ip}{254} agency{sharding_num} {sharding_num-1},{sharding_num}\n")
         f.close()
         print(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"])
         conf_fisco = subprocess.run(["bash", f"{path}/build_chain.sh", "-f", f"{path}/ipconf", "-p", "30300,20200,8545"], capture_output=True, text=True)
         # mv_res = subprocess.run(["mv", "nodes", f"nodes{i}"], capture_output=True, text=True)
-        print(f"Generate FISCO conf {i} {conf_fisco.stdout}")
+        print(f"Generate FISCO conf {i}")
+        print(conf_fisco.stdout)
         
     else:
         for i in range(sharding_num):

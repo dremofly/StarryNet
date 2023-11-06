@@ -532,7 +532,7 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
     复制到ground station
     """
     print("[" + str(current + 1) + "/" + str(total) + "]" +
-        f" docker cp {Path} {container_idx}:/fisco")
+        f" [sn_copy_blockchain_conf] docker cp {Path} {container_idx}:/fisco")
     
     # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/")
     # os.system(f"docker cp {path}/B{current}key.txt {container_idx}:/relsharding-client/relsharding-client/dist")
@@ -555,6 +555,15 @@ def sn_copy_blockchain_conf(container_idx, path, Path, current, total, caNum):
     os.system(copySDKcrtRel)
     os.system(copySDKkeyRel)
     os.system(copyCaRel)
+
+    # copy证书
+    copySDKcrt = f"docker cp {Path}/sdk/sdk.crt {container_idx}:/fisco-client/console/conf/sdk.crt"
+    copySDKkey = f"docker cp {Path}/sdk/sdk.key {container_idx}:/fisco-client/console/conf/sdk.key"
+    copyCa = f"docker cp {Path}/sdk/ca.crt {container_idx}:/fisco-client/console/conf/ca.crt"
+    os.system(copySDKcrt)
+    os.system(copySDKkey)
+    os.system(copyCa)
+
 
     # copy config.toml
     # genConfig = f"docker exec -d {container_idx} cp /fisco-client/console/conf/config-example.toml /fisco-client/console/conf/config.toml"
@@ -793,7 +802,7 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
             caNum = total-fac_node_number + 1
             if different_group:
                 print(f"different_group {True}")
-                caPath = f"~/nodes/{network_ip}{caNum-1}/sdk"
+                caPath = f"~/nodes/{network_ip}{caNum-1}/sdk" # FIXME: client在哪个shard
                 print(f"caPath: {caPath}")
                 copy_thread = threading.Thread(
                     target=sn_copy_client_conf,
@@ -1046,13 +1055,10 @@ def sn_deploy_contract(container_id_list, sat_number) -> str:
     print(f"[func begin] - sn_deploy_contract {container_id_list}, {sat_number}")
 
     # deploy SimpleBank
-    container_idx = container_id_list[0]
+    container_idx = container_id_list[sat_number] # 一个group 1部署了
     deployContractCmd = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'SimpleBank']
     res = subprocess.run(deployContractCmd, capture_output=True, text=True)
-    # container_idx = "your_container_id"  # 替换为您的容器ID
-    # deployContractCmd = f"source /etc/profile && docker exec {container_idx} bash fisco-client/console/console.sh deploy SimpleBank"
-    # res = subprocess.run(["bash", "-c", deployContractCmd], capture_output=True, text=True)
-    print_log(f"deploy contract: {container_idx} {res.stdout}")
+    print_log(f"deploy contract: account {container_idx} {res.stdout}")
     try:
         print_log(f"deploy SimpleBank contract res: {container_idx} {res.stdout.split()[5]}")
     except Exception as e:
@@ -1062,15 +1068,44 @@ def sn_deploy_contract(container_id_list, sat_number) -> str:
         contract_address = res.stdout.split()[5]
     except Exception as e:
         print(f"ERROR of contract_address {e}")
-    
+
     # deploy logging contract
     deployContractCmd2 = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', 'deploy', 'logging']
     res2 = subprocess.run(deployContractCmd2, capture_output=True, text=True)
-    # deployContractCmd2 = f"source /etc/profile && docker exec {container_idx} bash fisco-client/console/console.sh deploy logging"
-    # res2 = subprocess.run(["bash", "-c", deployContractCmd2], capture_output=True, text=True)
     print_log(f"deploy logging contract: {container_idx} {res2.stdout}")
     try:
-        print_log(f"deploy contract res: {container_idx} {res2.stdout.split()[5]}")
+        print_log(f"deploy logging contract res: {container_idx} {res2.stdout.split()[5]}")
+    except Exception as e:
+        print_log(f"res deploy out error {e}")
+    try:
+        # contract_address = res.stdout[1].split(':')[1].strip()
+        contract_address2 = res2.stdout.split()[5]
+    except Exception as e:
+        print(f"ERROR of contract_address {e}")
+    
+    container_idx = container_id_list[sat_number+1] # group 2部署
+    # FIXME: 添加group id也就是2的设定
+    deployContractCmd = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', '2', 'deploy', 'SimpleBank']
+    res = subprocess.run(deployContractCmd, capture_output=True, text=True)
+    print_log(f"deploy contract: account {container_idx} {res.stdout}")
+    try:
+        print_log(f"deploy SimpleBank contract res: {container_idx} {res.stdout.split()[5]}")
+    except Exception as e:
+        print_log(f"res deploy out error {e}")
+    try:
+        # contract_address = res.stdout[1].split(':')[1].strip()
+        contract_address = res.stdout.split()[5]
+    except Exception as e:
+        print(f"ERROR of contract_address {e}")
+
+
+    # deploy logging contract
+    # FIXME: 添加group id也就是2的设定
+    deployContractCmd2 = ['docker', 'exec', str(container_idx), 'bash', 'fisco-client/console/console.sh', '2', 'deploy', 'logging']
+    res2 = subprocess.run(deployContractCmd2, capture_output=True, text=True)
+    print_log(f"deploy logging contract: {container_idx} {res2.stdout}")
+    try:
+        print_log(f"deploy logging contract res: {container_idx} {res2.stdout.split()[5]}")
     except Exception as e:
         print_log(f"res deploy out error {e}")
     try:

@@ -61,6 +61,7 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
               str(address_16_23) + "." + str(address_8_15) + ".40") # TODO 这里的current_orbit_id * sat_num+current_sat_id不就是current_id吗
     delay = matrix[current_orbit_id * sat_num +
                    current_sat_id][down_orbit_id * sat_num + down_sat_id]
+    delay = delay/2
     
     # ==== Target interface 1 ====
     print()
@@ -87,18 +88,19 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
                   " ip link set dev " + target_interface + " down")
+        # 将原来的interface关闭
         os.system("docker exec -d " +
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
                   " ip link set dev " + target_interface + " down")
 
-        # interface rename
         print("docker exec -d " +
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
                   " ip link set dev " + target_interface + " name " + "B" +
                   str(current_orbit_id * sat_num + current_sat_id + 1) +
                   "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1))
+        # interface rename 为 B{当前卫星}-eth{链接卫星} 的格式。
         os.system("docker exec -d " +
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
@@ -113,6 +115,7 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
                   str(current_orbit_id * sat_num + current_sat_id + 1) +
                   "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1) +
                   " up")
+        # 开启rename后的interface
         os.system("docker exec -d " +
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
@@ -128,18 +131,22 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
                   str(current_orbit_id * sat_num + current_sat_id + 1) +
                   "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1) +
                   " root netem delay " + str(delay) + "ms loss " + str(loss) + "% rate " + str(bw) + "Gbps")
+        # 设置interface的参数
         os.system("docker exec -d " +
                   str(container_id_list[current_orbit_id * sat_num +
                                         current_sat_id]) +
                   " tc qdisc add dev B" +
                   str(current_orbit_id * sat_num + current_sat_id + 1) +
                   "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1) +
-                  " root netem delay " + str(delay) + "ms loss " + str(loss) + "% rate " + str(bw) + "Gbps")
+                  " root netem delay " + str(delay/2) + "ms loss " + str(loss) + "% rate " + str(bw) + "Gbps")
         try:
+            print(["docker", "exec", "-it", container_id_list[current_orbit_id * sat_num +
+                                            current_sat_id], "tc", "-s", "qdisc", "ls", "dev", "B"+str(current_orbit_id * sat_num + current_sat_id + 1) +
+                      "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1)])
             interface1 = subprocess.run(["docker", "exec", "-it", container_id_list[current_orbit_id * sat_num +
                                             current_sat_id], "tc", "-s", "qdisc", "ls", "dev", "B"+str(current_orbit_id * sat_num + current_sat_id + 1) +
                       "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1)], capture_output=True, text=True)
-            print(f"interface 1: {interface1}")
+            print(f"{current_orbit_id*sat_num+current_sat_id} interface 1: {interface1}")
         except Exception as e:
             print("Error: interface 1 ", e)
             
@@ -236,6 +243,7 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
               str(address_16_23) + "." + str(address_8_15) + ".30")
     delay = matrix[current_orbit_id * sat_num +
                    current_sat_id][right_orbit_id * sat_num + right_sat_id]
+    delay = delay / 2
 
     # ==== Target interface 3 ====
     print(
@@ -405,7 +413,7 @@ def sn_establish_GSL(container_id_list, matrix, GS_num, constellation_size, bw,
             if ((float(matrix[i - 1][j - 1])) <= 0.01):
                 continue
             # IP address  (there is a link between i and j)
-            delay = str(matrix[i - 1][j - 1])
+            delay = str(matrix[i - 1][j - 1]/2)
             address_16_23 = (j - constellation_size) & 0xff
             address_8_15 = i & 0xff
             GSL_name = "GSL_" + str(i) + "-" + str(j)

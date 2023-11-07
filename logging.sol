@@ -8,11 +8,25 @@ contract logging {
         int parameter1;
         int parameter2;
     }
+
+    struct OpLog2 {
+        address user;
+        string operation;
+    }
+
+    OpLog2[] public pendingLogs; // TODO: 引入lock
+    OpLog2[] public submmitedLogs;
+    uint256 private pendIndex = 0;
+
+    mapping (address => string[]) public operationLogs;
+
     mapping (address => OpLog) public UserLog;
     mapping (address => OpLog) public UserLogOne; // 前一个log
     mapping (address => OpLog) public UserLogTwo; // 前两个log
 
     event SubmitNewLog(address accountAddress, string time, string operation, int p1, int p2);
+    event SubmitNewLog2(address accountAddress, string signedMessage);
+
     event Log21OpError(address accountAddress, string op1, string op2);
     event Log10OpError(address accountAddress, string op0, string op1);
     event Log10P1Error(address accountAddress, int p0, int p1);
@@ -79,4 +93,40 @@ contract logging {
         return;
     }
 
+    function SubLog2(address account, string signedMessage) {
+        // account: 公钥
+        // signedMessage: 关键日志信息使用密钥加密的版本，可以用于监控网络，或实现其他功能。
+        OpLog2 memory log = OpLog2(account, signedMessage);
+        pendingLogs.push(log);
+        emit SubmitNewLog2(account, signedMessage);
+        return;
+    }
+
+    function GetOnePengdingTx() view returns(address, string) {
+        OpLog2 memory log = pendingLogs[pendIndex];
+        return (log.user, log.operation); 
+    }
+
+    function approveLog() {
+        OpLog2 memory log = pendingLogs[0];
+        submmitedLogs.push(log);
+        pendIndex += 1;
+        return;
+    }
+
+    function abandonLog() {{
+        pendIndex += 1;
+        return;
+    }}
+
+    function GetOneSubmittedLogs(int index) view returns(address, string) {
+        OpLog2 memory log = submmitedLogs[0];
+        return (log.user, log.operation);
+    }
+
+    // function VerifyLog2(address account) view returns(string) {
+    //     string[] logs = operationLogs[account]; 
+    //     uint lastIndex = logs.length - 1;
+    //     return logs[lastIndex];
+    // }
 }

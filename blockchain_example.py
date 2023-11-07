@@ -22,9 +22,9 @@ def modify_config_duration(base_file, new_file, duration):
 def create_public_node(sn: StarryNet):
     remote_ssh = sn.remote_ssh
 
-    # cmd = "docker run -d --name public_nodes -p 8545:8545 --net terrestrial --ip 192.168.2.254 mynode"
-    # createRes = sn_remote_cmd(remote_ssh, cmd)
-    # print(createRes)
+    cmd = "docker run -d --name public_nodes --cap-add ALL -p 8545:8545 --net terrestrial --ip 192.168.2.254 mynode"
+    createRes = sn_remote_cmd(remote_ssh, cmd)
+    print(createRes)
 
     getIdCmd = "docker ps | grep public_nodes"
     idRes = sn_remote_cmd(remote_ssh, getIdCmd)
@@ -65,7 +65,7 @@ def create_terrestrial_network(sn: StarryNet):
     sat_num = sn.sat_number
     orbit_num = sn.orbit_number
     gs_num = sn.fac_num
-    print(sat_num, orbit_num, gs_num)
+    # print(sat_num, orbit_num, gs_num)
 
     network_name = "terrestrial"
     network_ip = "192.168.2."
@@ -105,6 +105,64 @@ def get_ll(file) -> list:
     # print(locations)
     return locations
 
+def rename_interface(container_idx, target_interface, g_index):
+    """
+    修改interface的名字
+    """
+    print("docker exec -d " +
+              container_idx +
+              " ip link set dev " + target_interface + " down")
+    # 将原来的interface关闭
+    os.system("docker exec -d " +
+              container_idx +
+              " ip link set dev " + target_interface + " down")
+    
+    print("docker exec -d " +
+              container_idx +
+              " ip link set dev " + target_interface + " name " + "G" +
+              str(g_index))
+    # interface rename 为 G{num} 的格式。
+    os.system("docker exec -d " +
+              container_idx +
+              " ip link set dev " + target_interface + " name " + "G" +
+              str(g_index))
+
+    # 开启rename后的interface
+    os.system("docker exec -d " +
+              container_idx +
+              " ip link set dev G" +
+              str(g_index) +
+              " up")
+
+    os.system("docker exec -d " + container_idx +
+              " ip link set dev G" + str(g_index) + " up")
+    
+def modify_ground_ospf(sn: StarryNet):
+    """
+    修改地面站的ospf文件，向其中添加地面网络的interface
+    """
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    sat_num = sn.sat_number
+    orbit_num = sn.orbit_number
+    gs_num = sn.fac_num
+
+    g_index = 1
+    for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
+        container_idx = container_id_list[i]
+        getInterfaceName = f'docker exec -it {container_idx} ip addr | grep 192.168.2'
+        getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
+        # print(getRes)
+        targetInterface = getRes[0].split()[-1]
+        print(targetInterface)
+        rename_interface(container_idx, targetInterface, g_index)
+        g_index += 1
+    data_center_id = container_id_list[0]
+    getInterfaceName = f'docker exec -it {data_center_id} ip addr | grep 192.168.2'
+    getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
+    # print(getRes)
+    targetInterface = getRes[0].split()[-1]
+    rename_interface(data_center_id, targetInterface, g_index)
 
 def main():
     typer.echo("typer program")
@@ -129,7 +187,7 @@ def main():
                 [44, 2],
                 [51, 6]
                 ]
-    print(f'GS_lat_long: {GS_lat_long}')
+    # print(f'GS_lat_long: {GS_lat_long}')
     # configuration_file_path = "./config.json.6020"
     # export STARRY_CONFIG=config.json.nuc
     # configuration_file_path = os.environ.get('STARRY_CONFIG')
@@ -144,7 +202,6 @@ def main():
     AS = [[1, 25+len(GS_lat_long)]]  # Node #1 to Node #27 are within the same AS.
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
 
-    resetOrNot = True # 不需要初始化的话 False (节省时间)
     if resetOrNot:
         sn.create_nodes()
         sn.create_links()

@@ -145,6 +145,67 @@ def get_ground_interface(container_idx, remote_ssh):
     getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
     targetInterface = getRes[0].split()[-1]
     return targetInterface
+
+def generate_ospf_for_public_node(sn: StarryNet, remote_ftp):
+    """
+    为public node生成OSPF配置文件
+    """
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    container_idx = container_id_list[0]
+
+    targetInterface = get_ground_interface(container_idx, remote_ssh)
+
+    Q = []
+    Q.append(
+        "log \"/var/log/bird.log\" { debug, trace, info, remote, warning, error, auth, fatal, bug };"
+    )
+    Q.append("debug protocols all;")
+    Q.append("protocol device {")
+    Q.append("}")
+    Q.append(" protocol direct {")
+    Q.append("    disabled;		# Disable by default")
+    Q.append("    ipv4;			# Connect to default IPv4 table")
+    Q.append("    ipv6;			# ... and to default IPv6 table")
+    Q.append("}")
+    Q.append("protocol kernel {")
+    Q.append(
+        "    ipv4 {			# Connect protocol to IPv4 table by channel")
+    Q.append(
+        "        export all;	# Export to protocol. default is export none"
+    )
+    Q.append("    };")
+    Q.append("}")
+    Q.append("protocol static {")
+    Q.append(
+        "    ipv4;			# Again, IPv6 channel with default options")
+    Q.append("}")
+    Q.append("protocol ospf {")
+    Q.append("    ipv4 {")
+    Q.append("        import all;")
+    Q.append("    };")
+    Q.append("    area 0 {")
+    Q.append('    interface "' + targetInterface + '" {')
+    Q.append("        type broadcast;		# Detected by default")
+    Q.append("        cost 256;")
+    Q.append("        hello 1" +
+             ";			# Default hello perid 10 is too long")
+    Q.append("    };")
+    Q.append("    };")
+    Q.append(" }")
+
+    f = open("bird.conf", 'w')
+    for item in Q:
+        f.write(str(item) + '\n')
+    f.close()
+    remote_ftp.put('bird.conf', 'bird.conf')
+    
+    copyConf = f"docker cp bird.conf {container_idx}:/"
+    sn_remote_cmd(remote_ssh, copyConf)
+
+    runBird = f"docker exec {container_idx} -d bird -c /bird.conf"
+    res = sn_remote_cmd(remote_ssh, runBird)
+    
     
 def modify_ground_ospf(sn: StarryNet):
     """

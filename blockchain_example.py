@@ -72,7 +72,7 @@ def create_terrestrial_network(sn: StarryNet):
         try:
             container_idx = container_id_list[i]
             connectRes = sn_remote_cmd(remote_ssh, f"docker network connect {network_name} {container_idx} --ip {network_ip}{i}")
-            print(f"gs {i}: {connectRes}")
+            # print(f"gs {i}: {connectRes}")
         except Exception as e:
             print(f"error: i {i}, container list {container_id_list}", e)
             exit(1)
@@ -100,10 +100,12 @@ def main():
     typer.echo("typer program")
     # TODO 使用更准确的经纬度
 
+    resetOrNot = True # 不需要初始化的话 False (节省时间)
     locations = get_ll("region.json")
 
-    clearNode = "rm -rf /home/hong/nodes*"
-    os.system(clearNode)
+    if resetOrNot:
+        clearNode = "rm -rf /home/hong/nodes*"
+        os.system(clearNode)
     
     # GS_lat_long = locations[:5]
     GS_lat_long = [[37.950, -138.682127],

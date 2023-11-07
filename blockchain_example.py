@@ -137,47 +137,6 @@ def rename_interface(container_idx, target_interface, g_index):
     os.system("docker exec -d " + container_idx +
               " ip link set dev G" + str(g_index) + " up")
 
-# def generate_ospf_for_public_node(sn: StarryNet):
-#     """
-#     为public node生成OSPF配置文件
-#     """
-#     Q = []
-#     Q.append(
-#         "log \"/var/log/bird.log\" { debug, trace, info, remote, warning, error, auth, fatal, bug };"
-#     )
-#     Q.append("debug protocols all;")
-#     Q.append("protocol device {")
-#     Q.append("}")
-#     Q.append(" protocol direct {")
-#     Q.append("    disabled;		# Disable by default")
-#     Q.append("    ipv4;			# Connect to default IPv4 table")
-#     Q.append("    ipv6;			# ... and to default IPv6 table")
-#     Q.append("}")
-#     Q.append("protocol kernel {")
-#     Q.append(
-#         "    ipv4 {			# Connect protocol to IPv4 table by channel")
-#     Q.append(
-#         "        export all;	# Export to protocol. default is export none"
-#     )
-#     Q.append("    };")
-#     Q.append("}")
-#     Q.append("protocol static {")
-#     Q.append(
-#         "    ipv4;			# Again, IPv6 channel with default options")
-#     Q.append("}")
-#     Q.append("protocol ospf {")
-#     Q.append("    ipv4 {")
-#     Q.append("        import all;")
-#     Q.append("    };")
-#     Q.append("    area 0 {")
-#     Q.append(f"    interface {targetInterface}" {")
-#     Q.append("        type broadcast;		# Detected by default")
-#     Q.append("        cost 256;")
-#     Q.append("        hello " + str(self.hello_interval) +
-#              ";			# Default hello perid 10 is too long")
-#     Q.append("    };")
-#     Q.append(" }")
-    
 def get_ground_interface(container_idx, remote_ssh):
     """
     获取节点的Ground interface对应的interface name

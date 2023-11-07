@@ -142,13 +142,16 @@ def main():
 
         sn.run_blockchain_nodes(sharding_num=2)
 
+    copy_malicious_scripts(sn)
+    create_public_node(sn)
+
     # for i in range(2):
     node_index1 = 1
     node_index2 = 2
     time_index = 2
     # sn.set_deposit(node_index1, node_index2, time_index)
 
-    sn.start_emulation()
+    # sn.start_emulation()
 
 if __name__ == "__main__":
   typer.run(main)

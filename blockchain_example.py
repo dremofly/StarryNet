@@ -18,6 +18,34 @@ def modify_config_duration(base_file, new_file, duration):
     # 将修改后的字典写回目标文件
     with open(new_file, 'w') as file:
         json.dump(data, file, indent=4)  # indent=4 使输出更易读
+    
+def create_public_node(sn: StarryNet):
+    remote_ssh = sn.remote_ssh
+
+    # cmd = "docker run -d --name public_nodes -p 8545:8545 --net terrestrial --ip 192.168.2.254 mynode"
+    # createRes = sn_remote_cmd(remote_ssh, cmd)
+    # print(createRes)
+
+    getIdCmd = "docker ps | grep public_nodes"
+    idRes = sn_remote_cmd(remote_ssh, getIdCmd)
+    print(idRes)
+    publicId = idRes[0].split()[0]
+    print(publicId)
+
+def copy_malicious_scripts(sn: StarryNet):
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    prefix = 'project/project_congestionControl/StarryNet/'
+
+    for id in container_id_list:
+        copyCmd = f"docker cp {prefix}submitlog.py {id}:/"
+        copyCmd2 = f"docker cp {prefix}verify_contract.py {id}:/"
+        # print(copyCmd)
+        # print(copyCmd2)
+        res = sn_remote_cmd(remote_ssh, copyCmd)
+        # print(res)
+        res2 = sn_remote_cmd(remote_ssh, copyCmd2)
+        # print(res2)
 
 def create_terrestrial_network(sn: StarryNet):
     """

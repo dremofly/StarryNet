@@ -136,10 +136,66 @@ def rename_interface(container_idx, target_interface, g_index):
 
     os.system("docker exec -d " + container_idx +
               " ip link set dev G" + str(g_index) + " up")
+
+# def generate_ospf_for_public_node(sn: StarryNet):
+#     """
+#     为public node生成OSPF配置文件
+#     """
+#     Q = []
+#     Q.append(
+#         "log \"/var/log/bird.log\" { debug, trace, info, remote, warning, error, auth, fatal, bug };"
+#     )
+#     Q.append("debug protocols all;")
+#     Q.append("protocol device {")
+#     Q.append("}")
+#     Q.append(" protocol direct {")
+#     Q.append("    disabled;		# Disable by default")
+#     Q.append("    ipv4;			# Connect to default IPv4 table")
+#     Q.append("    ipv6;			# ... and to default IPv6 table")
+#     Q.append("}")
+#     Q.append("protocol kernel {")
+#     Q.append(
+#         "    ipv4 {			# Connect protocol to IPv4 table by channel")
+#     Q.append(
+#         "        export all;	# Export to protocol. default is export none"
+#     )
+#     Q.append("    };")
+#     Q.append("}")
+#     Q.append("protocol static {")
+#     Q.append(
+#         "    ipv4;			# Again, IPv6 channel with default options")
+#     Q.append("}")
+#     Q.append("protocol ospf {")
+#     Q.append("    ipv4 {")
+#     Q.append("        import all;")
+#     Q.append("    };")
+#     Q.append("    area 0 {")
+#     Q.append(f"    interface {targetInterface}" {")
+#     Q.append("        type broadcast;		# Detected by default")
+#     Q.append("        cost 256;")
+#     Q.append("        hello " + str(self.hello_interval) +
+#              ";			# Default hello perid 10 is too long")
+#     Q.append("    };")
+#     Q.append(" }")
+    
+def get_ground_interface(container_idx, remote_ssh):
+    """
+    获取节点的Ground interface对应的interface name
+    """
+    getInterfaceName = f'docker exec -it {container_idx} ip addr | grep 192.168.2'
+    getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
+    targetInterface = getRes[0].split()[-1]
+    return targetInterface
     
 def modify_ground_ospf(sn: StarryNet):
     """
-    修改地面站的ospf文件，向其中添加地面网络的interface
+    修改地面站的ospf文件，向其中添加地面网络的interface G数字
+    """
+    pass
+
+def modify_ground_interface(sn: StarryNet):
+    """
+    修改ground station的interface名
     """
     remote_ssh = sn.remote_ssh
     container_id_list = sn_get_container_info(remote_ssh)
@@ -150,18 +206,24 @@ def modify_ground_ospf(sn: StarryNet):
     g_index = 1
     for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
         container_idx = container_id_list[i]
-        getInterfaceName = f'docker exec -it {container_idx} ip addr | grep 192.168.2'
-        getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
-        # print(getRes)
-        targetInterface = getRes[0].split()[-1]
+
+        targetInterface = get_ground_interface(container_idx, remote_ssh)
+        # getInterfaceName = f'docker exec -it {container_idx} ip addr | grep 192.168.2'
+        # getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
+        # # print(getRes)
+        # targetInterface = getRes[0].split()[-1]
         print(targetInterface)
         rename_interface(container_idx, targetInterface, g_index)
         g_index += 1
     data_center_id = container_id_list[0]
-    getInterfaceName = f'docker exec -it {data_center_id} ip addr | grep 192.168.2'
-    getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
-    # print(getRes)
-    targetInterface = getRes[0].split()[-1]
+
+    # getInterfaceName = f'docker exec -it {data_center_id} ip addr | grep 192.168.2'
+    # getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
+    # # print(getRes)
+    # targetInterface = getRes[0].split()[-1]
+
+    targetInterface = get_ground_interface(data_center_id, remote_ssh)
+
     rename_interface(data_center_id, targetInterface, g_index)
 
 def main():
@@ -192,7 +254,6 @@ def main():
     # export STARRY_CONFIG=config.json.nuc
     # configuration_file_path = os.environ.get('STARRY_CONFIG')
 
-
     duration = 10
     base_configuration_file_path = "./config.json.nuc"
     configuration_file_path = "./current2.json"
@@ -212,7 +273,7 @@ def main():
         sn.run_blockchain_nodes(sharding_num=2)
 
         create_public_node(sn)
-    modify_ground_ospf(sn)
+    modify_ground_interface(sn)
     copy_malicious_scripts(sn)
 
 

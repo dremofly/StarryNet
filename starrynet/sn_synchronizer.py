@@ -145,7 +145,6 @@ class StarryNet():
         print("Link initialization done.")
 
     def run_routing_deamon(self):
-        print("[function begin] - run_routing_deamon")
         routing_thread = sn_Routing_Init_Thread(
             self.remote_ssh, self.remote_ftp, self.orbit_number,
             self.sat_number, self.constellation_size, self.fac_num,

@@ -462,8 +462,8 @@ class Observer():
         matrix = sn_get_param(path)
         num_backbone = self.orbit_number * self.sat_number + len(
             self.GS_lat_long)
-        print(f"generate_conf: {num_backbone}, {self.AS}")
-        print(f"len(AS): {len(self.AS)}")
+        # print(f"generate_conf: {num_backbone}, {self.AS}")
+        # print(f"len(AS): {len(self.AS)}")
         error = True
         for i in range(len(self.AS)):
             print(f"len(AS[{i}]): {len(self.AS[i])}")
@@ -471,7 +471,7 @@ class Observer():
                 # AS[i]是有范围的，比如说[1,27]
                 for ID in range(self.AS[i][0], self.AS[i][1] + 1):
                     Q = []
-                    print(f"compute_conf for node {ID}")
+                    # print(f"compute_conf for node {ID}")
                     error = self.compute_conf(
                         self.orbit_number * self.sat_number,
                         self.hello_interval, self.AS[i][0], self.AS[i][1], ID,

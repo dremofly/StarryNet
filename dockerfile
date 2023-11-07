@@ -31,6 +31,7 @@ COPY ./aioquic /home/aioquic
 RUN ln -s /usr/local/bin/python3.10 /usr/bin/python 
 
 RUN python -m pip install aioquic wsproto httpbin werkzeug==2.0.3 flask==2.1.3 asgiref starlette typer requests
+RUN python -m pip install pycryptodome
 COPY ./pyledbat /home/pyledbat
 
 WORKDIR /

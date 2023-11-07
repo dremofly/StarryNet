@@ -32,6 +32,16 @@ def create_public_node(sn: StarryNet):
     publicId = idRes[0].split()[0]
     print(publicId)
 
+    copyFisco = f"docker cp /home/hong/nodes/192.168.2.254 {publicId}:/fisco"
+    copyRes = sn_remote_cmd(remote_ssh, copyFisco)
+    # print(copyRes)
+    modifyConfigIni = f"docker exec -d {publicId} sed -i 's/jsonrpc_listen_ip=127.0.0.1/jsonrpc_listen_ip=0.0.0.0/' /fisco/node0/config.ini"
+    modifyRes = sn_remote_cmd(remote_ssh, modifyConfigIni)
+
+    startFisco = f"docker exec -d {publicId} bash /fisco/start_all.sh"
+    fiscoRes = sn_remote_cmd(remote_ssh, startFisco)
+    print(fiscoRes)
+
 def copy_malicious_scripts(sn: StarryNet):
     remote_ssh = sn.remote_ssh
     container_id_list = sn_get_container_info(remote_ssh)
@@ -144,8 +154,10 @@ def main():
 
         sn.run_blockchain_nodes(sharding_num=2)
 
+        create_public_node(sn)
+    modify_ground_ospf(sn)
     copy_malicious_scripts(sn)
-    create_public_node(sn)
+
 
     # for i in range(2):
     node_index1 = 1

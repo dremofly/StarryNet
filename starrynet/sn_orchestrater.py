@@ -802,7 +802,10 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
             caNum = total-fac_node_number + 1
             if different_group:
                 print(f"different_group {True}")
-                caPath = f"~/nodes/{network_ip}{caNum-1}/sdk" # FIXME: client在哪个shard
+                if current % 2 == 0:
+                    caPath = f"~/nodes/{network_ip}{caNum-1}/sdk" # FIXME: client在哪个shard
+                else:
+                    caPath = f"~/nodes/{network_ip}{caNum}/sdk" # FIXME: client在哪个shard
                 print(f"caPath: {caPath}")
                 copy_thread = threading.Thread(
                     target=sn_copy_client_conf,
@@ -810,7 +813,10 @@ def sn_copy_run_blockchain_to_each_gs(container_id_list, fac_node_number, path, 
                 )
             else:
                 nodei = current % sharding_num
-                caPath = f"~/nodes{nodei}/{network_ip}{caNum-1}/sdk"
+                if current % 2 == 0:
+                    caPath = f"~/nodes{nodei}/{network_ip}{caNum-1}/sdk"
+                else:
+                    caPath = f"~/nodes{nodei}/{network_ip}{caNum}/sdk"
                 print(f"caPath: {caPath}")
                 copy_thread = threading.Thread(
                     target=sn_copy_client_conf,

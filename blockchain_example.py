@@ -219,8 +219,6 @@ def modify_ground_ospf(sn: StarryNet):
     gs_num = sn.fac_num
     for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
         container_idx = container_id_list[i]
-        copyCmd = f'docker cp add_ospf.py {container_idx}:/'
-        copyRes = sn_remote_cmd(remote_ssh, copyCmd)
 
         targetInterface = get_ground_interface(container_idx, remote_ssh)
         lsConf = f'docker exec -it {container_idx} ls /'
@@ -230,9 +228,21 @@ def modify_ground_ospf(sn: StarryNet):
         cmd = f'docker exec -d {container_idx} python add_ospf.py {targetInterface} /{confFile}'
         sn_remote_cmd(remote_ssh, cmd)
 
-        restartBird = f'docker exec -d {container_idx} service bird restart'
-        res = sn_remote_cmd(remote_ssh, restartBird)
-        print(res)
+        psCmd = f'docker exec -it {container_idx} ps aux | grep bird'
+        psRes = sn_remote_cmd(remote_ssh, psCmd)
+        # print(psCmd, psRes)
+        if psRes:
+            pid = psRes[0].split()[1]
+        
+        if pid:
+            killCmd = f'docker exec -d {container_idx} kill -9 {pid}'
+            killRes = sn_remote_cmd(remote_ssh, killCmd)
+            print(killRes)
+
+        # print(i)
+        restartCmd = f'docker exec -it {container_idx} bird -c B{i}.conf'
+        reRes = sn_remote_cmd(remote_ssh, restartCmd)
+        print(reRes)
 
 
 def modify_ground_interface(sn: StarryNet):
@@ -276,9 +286,8 @@ def copy_ospf_script(sn: StarryNet):
     gs_num = sn.fac_num
     for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
         container_idx = container_id_list[i]
-        copyCmd = f'docker cp add_ospf.sh {container_idx}:/'
+        copyCmd = f'docker cp add_ospf.py {container_idx}:/'
         os.system(copyCmd)
-    
 
 def main():
     typer.echo("typer program")
@@ -314,7 +323,9 @@ def main():
     modify_config_duration(base_configuration_file_path, configuration_file_path, duration)
 
     hello_interval = 1  # hello_interval(s) in OSPF. 1-200 are supported.
+
     AS = [[1, 25+len(GS_lat_long)]]  # Node #1 to Node #27 are within the same AS.
+
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
 
     if resetOrNot:

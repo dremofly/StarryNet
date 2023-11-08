@@ -6,6 +6,7 @@ import sys
 import typer
 import json
 import os
+from starrynet.sn_utils import sn_load_file
 
 def modify_config_duration(base_file, new_file, duration):
         # 读取源文件内容
@@ -239,7 +240,7 @@ def modify_ground_ospf(sn: StarryNet):
             killRes = sn_remote_cmd(remote_ssh, killCmd)
             print(killRes)
 
-        # print(i)
+        print(i)
         restartCmd = f'docker exec -it {container_idx} bird -c B{i}.conf'
         reRes = sn_remote_cmd(remote_ssh, restartCmd)
         print(reRes)
@@ -323,10 +324,15 @@ def main():
     modify_config_duration(base_configuration_file_path, configuration_file_path, duration)
 
     hello_interval = 1  # hello_interval(s) in OSPF. 1-200 are supported.
+    config = sn_load_file(configuration_file_path, GS_lat_long)
+    sat_num_every_orbit = config.sat_number
+    orbit_num = config.orbit_number
+    total_sat = sat_num_every_orbit * orbit_num
 
-    AS = [[1, 25+len(GS_lat_long)]]  # Node #1 to Node #27 are within the same AS.
+    AS = [[1, total_sat+len(GS_lat_long)]] 
 
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
+    exit()
 
     if resetOrNot:
         sn.create_nodes()

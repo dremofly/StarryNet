@@ -143,7 +143,7 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
                   " tc qdisc add dev B" +
                   str(current_orbit_id * sat_num + current_sat_id + 1) +
                   "-eth" + str(down_orbit_id * sat_num + down_sat_id + 1) +
-                  " root netem delay " + str(delay/2) + "ms loss " + str(loss) + "% rate " + str(bw) + "Gbps")
+                  " root netem delay " + str(delay) + "ms loss " + str(loss) + "% rate " + str(bw) + "Gbps")
         try:
             print(["docker", "exec", "-it", container_id_list[current_orbit_id * sat_num +
                                             current_sat_id], "tc", "-s", "qdisc", "ls", "dev", "B"+str(current_orbit_id * sat_num + current_sat_id + 1) +
@@ -246,9 +246,17 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
               str(container_id_list[current_orbit_id * sat_num +
                                     current_sat_id]) + " --ip 10." +
               str(address_16_23) + "." + str(address_8_15) + ".30")
+
+    # result = subprocess.run(['docker', 'network', 'connect', ISL_name, str(container_id_list[current_orbit_id * sat_num +
+    #                                 current_sat_id]), '--ip', '10.'+str(address_16_23)+'.'+str(address_8_15)+'.30'], capture_output=True, text=True)
+    # print(result.stdout)
+    # if result.stderr:
+    #     print("Errors:", result.stderr)
+
     delay = matrix[current_orbit_id * sat_num +
                    current_sat_id][right_orbit_id * sat_num + right_sat_id]
-    delay = delay / 2
+    # delay = delay / 2
+    print("delay", delay, "type delay ", type(delay))
 
     # ==== Target interface 3 ====
     print(
@@ -370,6 +378,7 @@ def sn_establish_ISLs(container_id_list, matrix, orbit_num, sat_num,
     """
     Desc: 创建ISL连接
     """
+    print("Establish ISL")
     ISL_threads = []
     for current_orbit_id in range(0, orbit_num):
         for current_sat_id in range(0, sat_num):
@@ -418,7 +427,7 @@ def sn_establish_GSL(container_id_list, matrix, GS_num, constellation_size, bw,
             if ((float(matrix[i - 1][j - 1])) <= 0.01):
                 continue
             # IP address  (there is a link between i and j)
-            delay = str(matrix[i - 1][j - 1]/2)
+            delay = str(matrix[i - 1][j - 1])
             address_16_23 = (j - constellation_size) & 0xff
             address_8_15 = i & 0xff
             GSL_name = "GSL_" + str(i) + "-" + str(j)
@@ -515,7 +524,7 @@ def sn_copy_run_conf(container_idx, path, Path, current, total):
     os.system("docker cp " + Path + "/B" + str(current + 1) + ".conf " +
               str(container_idx) + ":/B" + str(current + 1) + ".conf")
     print("[" + str(current + 1) + "/" + str(total) + "]" +
-          " docker cp bird.conf " + str(container_idx) + ":/bird.conf")
+          " docker cp bird.conf " + str(container_idx) + ":/B"+ str(current+1) +".conf")
 
     print("[sn_copy_run_conf] container_idx ", container_idx)
     try:

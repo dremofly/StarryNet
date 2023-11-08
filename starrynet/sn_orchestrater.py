@@ -55,16 +55,21 @@ def sn_ISL_establish(current_sat_id, current_orbit_id, container_id_list,
     print(f'[Create ISL {current_id}:]' + 'docker network create ' + ISL_name +
           " --subnet 10." + str(address_16_23) + "." + str(address_8_15) +
           ".0/24")
+    print('docker network connect ' + ISL_name + " " +
+              str(container_id_list[current_orbit_id * sat_num +
+                                    current_sat_id]) + " --ip 10." +
+              str(address_16_23) + "." + str(address_8_15) + ".40")
     os.system('docker network connect ' + ISL_name + " " +
               str(container_id_list[current_orbit_id * sat_num +
                                     current_sat_id]) + " --ip 10." +
               str(address_16_23) + "." + str(address_8_15) + ".40") # TODO 这里的current_orbit_id * sat_num+current_sat_id不就是current_id吗
     delay = matrix[current_orbit_id * sat_num +
                    current_sat_id][down_orbit_id * sat_num + down_sat_id]
-    delay = delay/2
+    print("delay ", delay , "type delay ", type(delay))
+    # delay = delay/2
     
     # ==== Target interface 1 ====
-    print()
+    print("For target interface 1")
     print("[open 1] " + "docker exec -it " +
             str(container_id_list[current_orbit_id * sat_num +
                                   current_sat_id]) +

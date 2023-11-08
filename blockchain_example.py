@@ -211,7 +211,28 @@ def modify_ground_ospf(sn: StarryNet):
     """
     修改地面站的ospf文件，向其中添加地面网络的interface G数字
     """
-    pass
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    sat_num = sn.sat_number
+    orbit_num = sn.orbit_number
+    gs_num = sn.fac_num
+    for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
+        container_idx = container_id_list[i]
+        copyCmd = f'docker cp add_ospf.py {container_idx}:/'
+        copyRes = sn_remote_cmd(remote_ssh, copyCmd)
+
+        targetInterface = get_ground_interface(container_idx, remote_ssh)
+        lsConf = f'docker exec -it {container_idx} ls /'
+        lsRes = sn_remote_cmd(remote_ssh, lsConf)
+        confFile = lsRes[0].split()[0]
+    
+        cmd = f'docker exec -d {container_idx} python add_ospf.py {targetInterface} /{confFile}'
+        sn_remote_cmd(remote_ssh, cmd)
+
+        restartBird = f'docker exec -d {container_idx} service bird restart'
+        res = sn_remote_cmd(remote_ssh, restartBird)
+        print(res)
+
 
 def modify_ground_interface(sn: StarryNet):
     """
@@ -245,6 +266,18 @@ def modify_ground_interface(sn: StarryNet):
     targetInterface = get_ground_interface(data_center_id, remote_ssh)
 
     rename_interface(data_center_id, targetInterface, g_index)
+
+def copy_ospf_script(sn: StarryNet):
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    sat_num = sn.sat_number
+    orbit_num = sn.orbit_number
+    gs_num = sn.fac_num
+    for i in range(sat_num*orbit_num+1, gs_num+sat_num*orbit_num+1):
+        container_idx = container_id_list[i]
+        copyCmd = f'docker cp add_ospf.sh {container_idx}:/'
+        os.system(copyCmd)
+    
 
 def main():
     typer.echo("typer program")
@@ -293,8 +326,15 @@ def main():
         sn.run_blockchain_nodes(sharding_num=2)
 
         create_public_node(sn)
-    modify_ground_interface(sn)
+        modify_ground_interface(sn)
+    remote_ftp = sn.remote_ftp
     copy_malicious_scripts(sn)
+    copy_ospf_script(sn)
+
+    generate_ospf_for_public_node(sn, remote_ftp)
+
+    copy_ospf_script(sn)
+    modify_ground_ospf(sn)
 
 
     # for i in range(2):

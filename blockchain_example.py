@@ -203,9 +203,10 @@ def generate_ospf_for_public_node(sn: StarryNet, remote_ftp):
     copyConf = f"docker cp bird.conf {container_idx}:/"
     sn_remote_cmd(remote_ssh, copyConf)
 
-    runBird = f"docker exec {container_idx} -d bird -c /bird.conf"
+    runBird = f"docker exec -d {container_idx} bird -c /bird.conf"
     res = sn_remote_cmd(remote_ssh, runBird)
-    
+    print('runBird res')
+    print(res)
     
 def modify_ground_ospf(sn: StarryNet):
     """

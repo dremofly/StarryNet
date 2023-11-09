@@ -289,6 +289,50 @@ def copy_ospf_script(sn: StarryNet):
         container_idx = container_id_list[i]
         copyCmd = f'docker cp add_ospf.py {container_idx}:/'
         os.system(copyCmd)
+    
+def distribute_AS(numSats, numGs, numAS):
+    """
+    分割多个AS
+    """
+    index_sats = [x for x in range(numSats)]
+    index_gs = [x+numSats for x in range(numGs)]
+    
+    print(index_sats)
+    print(index_gs)
+
+    AS = []
+    for i in range(numAS):
+        AS.append([])
+
+    left = 0
+    interval = numSats // numAS
+    print(interval)
+    for i in range(numAS):
+        # right = numSats // numAS * (i+1)
+        right = left + interval
+        if numSats - right < interval:
+            right = numSats
+        print(left, right)
+        AS[i].extend(index_sats[left:right])
+        left = right
+    print(AS)
+
+    left = 0
+    interval = numGs // numAS
+    for i in range(numAS):
+        right = left + interval
+        if numGs - right < interval:
+            right = numGs
+        print(left, right)
+        AS[i].extend(index_gs[left:right])
+        left = right
+    print(AS)
+
+
+
+
+
+
 
 def main():
     typer.echo("typer program")
@@ -329,10 +373,11 @@ def main():
     orbit_num = config.orbit_number
     total_sat = sat_num_every_orbit * orbit_num
 
-    AS = [[1, total_sat+len(GS_lat_long)]] 
+    # AS = [[1, total_sat+len(GS_lat_long)]] 
+    AS = distribute_AS(total_sat, len(GS_lat_long), 1)
 
-    sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
     exit()
+    sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
 
     if resetOrNot:
         sn.create_nodes()

@@ -265,7 +265,7 @@ def modify_ground_interface(sn: StarryNet):
         # getRes = sn_remote_cmd(remote_ssh, getInterfaceName)
         # # print(getRes)
         # targetInterface = getRes[0].split()[-1]
-        print(targetInterface)
+        # print(targetInterface)
         rename_interface(container_idx, targetInterface, g_index)
         g_index += 1
     data_center_id = container_id_list[0]
@@ -290,49 +290,43 @@ def copy_ospf_script(sn: StarryNet):
         copyCmd = f'docker cp add_ospf.py {container_idx}:/'
         os.system(copyCmd)
     
-def distribute_AS(numSats, numGs, numAS):
-    """
-    分割多个AS
-    """
-    index_sats = [x for x in range(numSats)]
-    index_gs = [x+numSats for x in range(numGs)]
+# def distribute_AS(numSats, numGs, numAS):
+#     """
+#     分割多个AS
+#     """
+#     index_sats = [x for x in range(numSats)]
+#     index_gs = [x+numSats for x in range(numGs)]
     
-    print(index_sats)
-    print(index_gs)
+#     print(index_sats)
+#     print(index_gs)
 
-    AS = []
-    for i in range(numAS):
-        AS.append([])
+#     AS = []
+#     for i in range(numAS):
+#         AS.append([])
 
-    left = 0
-    interval = numSats // numAS
-    print(interval)
-    for i in range(numAS):
-        # right = numSats // numAS * (i+1)
-        right = left + interval
-        if numSats - right < interval:
-            right = numSats
-        print(left, right)
-        AS[i].extend(index_sats[left:right])
-        left = right
-    print(AS)
+#     left = 0
+#     interval = numSats // numAS
+#     print(interval)
+#     for i in range(numAS):
+#         # right = numSats // numAS * (i+1)
+#         right = left + interval
+#         if numSats - right < interval:
+#             right = numSats
+#         print(left, right)
+#         AS[i].extend(index_sats[left:right])
+#         left = right
+#     print(AS)
 
-    left = 0
-    interval = numGs // numAS
-    for i in range(numAS):
-        right = left + interval
-        if numGs - right < interval:
-            right = numGs
-        print(left, right)
-        AS[i].extend(index_gs[left:right])
-        left = right
-    print(AS)
-
-
-
-
-
-
+#     left = 0
+#     interval = numGs // numAS
+#     for i in range(numAS):
+#         right = left + interval
+#         if numGs - right < interval:
+#             right = numGs
+#         print(left, right)
+#         AS[i].extend(index_gs[left:right])
+#         left = right
+#     print(AS)
 
 def main():
     typer.echo("typer program")
@@ -373,10 +367,10 @@ def main():
     orbit_num = config.orbit_number
     total_sat = sat_num_every_orbit * orbit_num
 
-    # AS = [[1, total_sat+len(GS_lat_long)]] 
-    AS = distribute_AS(total_sat, len(GS_lat_long), 1)
+    AS = [[1, total_sat+len(GS_lat_long)]] 
+    # AS = distribute_AS(total_sat, len(GS_lat_long), 1)
+    # AS = [[1, 12], [12, 35]]
 
-    exit()
     sn = StarryNet(configuration_file_path, GS_lat_long, hello_interval, AS)
 
     if resetOrNot:
@@ -390,15 +384,17 @@ def main():
 
         create_public_node(sn)
         modify_ground_interface(sn)
-    remote_ftp = sn.remote_ftp
+
+        remote_ftp = sn.remote_ftp
+
+        copy_ospf_script(sn)
+
+        generate_ospf_for_public_node(sn, remote_ftp)
+
+        copy_ospf_script(sn)
+        modify_ground_ospf(sn)
+
     copy_malicious_scripts(sn)
-    copy_ospf_script(sn)
-
-    generate_ospf_for_public_node(sn, remote_ftp)
-
-    copy_ospf_script(sn)
-    modify_ground_ospf(sn)
-
 
     # for i in range(2):
     node_index1 = 1

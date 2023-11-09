@@ -58,6 +58,7 @@ COPY SimpleBank.sol /fisco-client/console/contracts/solidity/SimpleBank.sol
 COPY logging.sol /fisco-client/console/contracts/solidity/logging.sol
 COPY call_contract.sh /call_contract.sh
 RUN python -m pip install toml
+RUN python -m pip install ecdsa
 
 WORKDIR /
 RUN python -m pip install grpcio grpcio-tools "Flask[async]" aiohttp aiofiles

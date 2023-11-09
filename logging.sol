@@ -129,4 +129,8 @@ contract logging {
     //     uint lastIndex = logs.length - 1;
     //     return logs[lastIndex];
     // }
+    function SubmitRoute() {
+        // DESC: 上传路由信息
+
+    }
 }

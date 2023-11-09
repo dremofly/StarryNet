@@ -58,6 +58,17 @@ def copy_malicious_scripts(sn: StarryNet):
         res2 = sn_remote_cmd(remote_ssh, copyCmd2)
         # print(res2)
 
+def copy_certificate_scripts(sn: StarryNet):
+    remote_ssh = sn.remote_ssh
+    container_id_list = sn_get_container_info(remote_ssh)
+    prefix = 'project/project_congestionControl/StarryNet/'
+
+    for id in container_id_list:
+        copyCmd = f"docker cp {prefix}cert_server.py {id}:/"
+        copyCmd2 = f"docker cp {prefix}cert_client.py {id}:/"
+        res = sn_remote_cmd(remote_ssh, copyCmd)
+        res2 = sn_remote_cmd(remote_ssh, copyCmd2)
+
 def create_terrestrial_network(sn: StarryNet):
     """
     创建一个地面网络，用于ground stations的连接
@@ -395,6 +406,7 @@ def main():
         modify_ground_ospf(sn)
 
     copy_malicious_scripts(sn)
+    copy_certificate_scripts(sn)
 
     # for i in range(2):
     node_index1 = 1

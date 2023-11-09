@@ -1,11 +1,6 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
-"""
-Starrynet Cleanup
-author: Yangtao Deng (dengyt21@mails.tsinghua.edu.cn)
-"""
 import os
-
 
 def cleanup():
     print("Deleting all native bridges and containers...")
